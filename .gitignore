@@ -3,9 +3,11 @@
 .env.local
 .env.*.local
 
-# 忽略 response 和 uploads 資料夾
-response/
-uploads/
+# 保留資料夾結構但忽略內容
+reports/*
+!reports/.gitkeep
+uploads/*
+!uploads/.gitkeep
 
 # 忽略配置檔案中的敏感資訊
 config.py
