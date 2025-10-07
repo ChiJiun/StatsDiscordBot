@@ -1,1 +1,36 @@
-.env
+# 忽略 response 和 uploads 資料夾
+response/
+uploads/
+
+# 忽略配置檔案中的敏感資訊
+config.py
+
+# Python 相關
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# IDE 相關
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# 系統檔案
+.DS_Store
+Thumbs.db
+
+# 日誌檔案
+*.log
+
+# 資料庫檔案
+*.db
+*.sqlite
+*.sqlite3

@@ -33,3 +33,7 @@ DB_PATH = "homework.db"
 UPLOADS_DIR = "uploads"
 REPORTS_DIR = "reports"
 PROMPTS_DIR = "."  # 提示檔案存放目錄
+
+# Grading 系統設定
+ENG_PROMPT_FILE = os.path.join(PROMPTS_DIR, "Eng_prompt.txt")
+STATS_PROMPT_FILE = os.path.join(PROMPTS_DIR, "Stats_prompt.txt")

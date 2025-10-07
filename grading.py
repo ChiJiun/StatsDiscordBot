@@ -1,7 +1,7 @@
 import json
 import re
 import aiohttp
-from config import OPENAI_API_KEY, MODEL
+from config import OPENAI_API_KEY, MODEL, ENG_PROMPT_FILE, STATS_PROMPT_FILE
 
 
 class GradingService:
@@ -22,7 +22,15 @@ class GradingService:
 
     def load_prompt_template(self, prompt_type):
         """從 txt 檔案讀取評分提示模板"""
-        prompt_file = f"prompt_{prompt_type}.txt"
+        # 根據 prompt_type 選擇對應的檔案路徑
+        if prompt_type.lower() == "eng":
+            prompt_file = ENG_PROMPT_FILE
+        elif prompt_type.lower() == "stats":
+            prompt_file = STATS_PROMPT_FILE
+        else:
+            # 如果是其他類型，使用舊的命名方式作為備用
+            prompt_file = f"prompt_{prompt_type}.txt"
+
         try:
             with open(prompt_file, "r", encoding="utf-8") as f:
                 return f.read().strip()
@@ -34,9 +42,6 @@ class GradingService:
 學生答案：
 {{answer_text}}
 
-請回覆格式：
-Score: <0-100>  
-Band Level: <CEFR 等級>  
 Feedback:  
 <詳細回饋內容，使用 Markdown 格式>"""
 

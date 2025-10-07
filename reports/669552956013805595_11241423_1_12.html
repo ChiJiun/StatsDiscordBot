@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>作業評分報告</title>
+<style>
+/* ...existing CSS styles... */
+body {
+    font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    background: linear-gradient(135deg, #e0eafc, #cfdef3);
+    color: #2c3e50;
+    margin: 40px auto;
+    max-width: 960px;
+    line-height: 1.75;
+    padding: 0 20px;
+}
+
+h1, h2 {
+    color: #1f3a93;
+    margin-bottom: 0.75em;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+h1 {
+    border-bottom: 3px solid #2980b9;
+    padding-bottom: 0.3em;
+    font-size: 2.6rem;
+}
+
+h2 {
+    border-bottom: 2px solid #3498db;
+    padding-bottom: 0.35em;
+    margin-top: 2.5em;
+    font-size: 1.9rem;
+}
+
+section {
+    background-color: #fff;
+    border-radius: 16px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    padding: 35px 40px;
+    margin-bottom: 50px;
+}
+
+.original-answer {
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 1rem;
+    color: #34495e;
+    white-space: pre-wrap;
+    border-left: 8px solid #2980b9;
+    padding-left: 20px;
+    background-color: #f8f9fa;
+}
+
+.feedback-content {
+    background-color: #f8f9fa;
+    border-radius: 8px;
+    padding: 20px;
+    margin-top: 15px;
+    border-left: 4px solid #3498db;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+}
+
+.feedback-content p {
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+
+.feedback-content pre {
+    background-color: #f4f4f4;
+    padding: 10px;
+    border-radius: 4px;
+    white-space: pre-wrap;
+    font-family: monospace;
+}
+
+.grading-section.eng .feedback-content {
+    border-left-color: #3498db;
+    background-color: #f0f7ff;
+}
+
+.grading-section.stats .feedback-content {
+    border-left-color: #e67e22;
+    background-color: #fff8f0;
+}
+
+.grading-section {
+    border-left: 6px solid #e74c3c;
+    padding-left: 20px;
+    margin-bottom: 30px;
+}
+
+.grading-section.eng {
+    border-left-color: #3498db;
+}
+
+.grading-section.stats {
+    border-left-color: #e67e22;
+}
+</style>
+</head>
+<body>
+    <h1>黃麒安_11241423_第1題_第12次</h1>
+    
+    <section class="original-answer">
+        <h2>原始作答資料</h2>
+        <div>State:<br>Ho:There is no association between age group and whether or not a subscribers watches five or more movie genres per week.<br>Ha: There is an association between age group and whether or not a subscribers watches five or more movie genres per week.<br>Plan:<br>Random:8866 subscribers was randomly selected.<br>Independence:8866 sample size is less than 10% porpulation of all subscribers.<br>Expected Counts:All expected counts are at least 5.<br>Do:<br>total chi square statistic ≈8.984<br>Df =(3-1)(2-1)=2<br>the p-value ≈0.011<br>Conclude:Because our p-value 0.011 is less than a 0.05,we reject Ho .So we convincing evidence there is an association between age group and viewing action in the streaming platform.</div>
+    </section>
+    
+    <section class="grading-section eng">
+        <h2>🔤 英語評分</h2>
+        <div class="feedback-content"><pre><code class="language-markdown">- 🔢 **Total Score**: 15/20
+- 🌍 **Band Level**: B2
+
+- 📌 Feedback – 
+
+   - 🔹 **Strengths in Academic Language**
+     - The student demonstrates a good understanding of the statistical concepts and effectively communicates the sequence of steps involved in the analysis. The use of transitional phrases like &quot;Therefore&quot; and &quot;This means&quot; helps in guiding the reader through the reasoning process.
+     - The overall structure of the response is logical, with a clear introduction to the statistical problem and a conclusion that summarizes the findings.
+
+   - 🔸 **Areas to Improve (Vocabulary, Grammar, or Clarity)**
+     - While the student uses some statistical terminology correctly, there are instances where more precise vocabulary could enhance clarity. For example, terms like &quot;population parameter&quot; and &quot;margin of error&quot; could be better integrated into the explanations.
+     - There are minor grammatical errors that affect the overall fluency of the text. The student should focus on maintaining consistent tense and ensuring subject-verb agreement.
+     - Some sentences are overly complex, which can lead to confusion. Simplifying these structures would improve clarity.
+
+   - ✏️ **Example Revisions for 1–2 selected sentences**
+     | Original Sentence                                                                 | Revised Sentence                                                               |
+     |-----------------------------------------------------------------------------------|------------------------------------------------------------------------------|
+     | &quot;The sample proportion is calculated and it shows that the population parameter is likely to be within the margin of error.&quot; | &quot;The sample proportion is calculated, indicating that the population parameter is likely to fall within the margin of error.&quot; |
+     | &quot;This means that we can be confident about our results but there are still some uncertainties.&quot; | &quot;This indicates that we can be confident in our results; however, some uncertainties remain.&quot; |
+</code></pre></div>
+    </section>
+    
+    <section class="grading-section stats">
+        <h2>📊 統計評分</h2>
+        <div class="feedback-content"><table>
+<thead>
+<tr>
+<th>Category</th>
+<th>Points</th>
+<th>Feedback</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>1. State</strong></td>
+<td>5</td>
+<td>The null hypothesis (H₀) and alternative hypothesis (Hₐ) are clearly stated, and the significance level (α = 0.05) is correctly declared.</td>
+</tr>
+<tr>
+<td><strong>2. Plan</strong></td>
+<td>5</td>
+<td>The student correctly identifies the chi-square test of independence and checks the necessary conditions: random sample, n &lt; 10% of population, and all expected counts ≥ 5.</td>
+</tr>
+<tr>
+<td><strong>3. Do</strong></td>
+<td>5</td>
+<td>The calculations for expected counts, contributions to the chi-square statistic, and the total chi-square value are all shown correctly. Degrees of freedom and p-value are also provided.</td>
+</tr>
+<tr>
+<td><strong>4. Conclude</strong></td>
+<td>5</td>
+<td>The conclusion clearly states the decision to reject H₀ and provides a contextual interpretation of the results, indicating an association between age group and viewing behavior.</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Total Score: 20/20</strong></p>
+<p>Overall remark: The student has provided a thorough and accurate solution, following the four-step process effectively and demonstrating a strong understanding of the statistical concepts involved. Excellent work!</p></div>
+    </section>
+</body>
+</html>

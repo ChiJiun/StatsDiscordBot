@@ -47,7 +47,7 @@
 
 ## 🏗️ 系統架構
 
-```
+```text
 📦 統計學AI系統
 ├── 🤖 Discord Bot (discord_bot.py)
 │   ├── 訊息處理
@@ -88,13 +88,13 @@ git clone <repository-url>
 cd Stats/code/Bot
 ```
 
-2. **安裝依賴**
+1. **安裝依賴**
 
 ```bash
 pip install discord.py aiohttp openai beautifulsoup4
 ```
 
-3. **配置環境變數**
+1. **配置環境變數**
    創建 `.env` 文件：
 
 ```env
@@ -110,13 +110,13 @@ NCUEC_ROLE_ID=ncuec_role_id
 CYCUIUBM_ROLE_ID=cycuiubm_role_id
 ```
 
-4. **啟動機器人**
+1. **啟動機器人**
 
 ```bash
 python main.py
 ```
 
-5. **強制更新歡迎訊息**（可選）
+1. **強制更新歡迎訊息**（可選）
 
 ```bash
 python main.py --force-welcome
@@ -128,7 +128,7 @@ python main.py --force-welcome
 
 #### 1. 選擇身分組
 
-```
+```bash
 !join NCUFN    # 加入中央大學財金系
 !join NCUEC    # 加入中央大學經濟系
 !join CYCUIUBM # 加入中原大學國際商學學士學位學程
@@ -142,7 +142,7 @@ python main.py --force-welcome
 
 #### 3. 查看資訊
 
-```
+```bash
 !help        # 查看幫助指令
 !my-roles    # 查看我的身分組
 ```
@@ -151,17 +151,78 @@ python main.py --force-welcome
 
 #### 1. 系統管理
 
-```
+```bash
 !update-welcome  # 更新歡迎訊息
 ```
 
 #### 2. 資料庫管理
 
-```
+```bash
 !db stats    # 查看資料庫統計
 !db backup   # 備份資料庫
 !db clean    # 清理舊資料
 !db export   # 匯出資料
+```
+
+## 🐛 故障排除
+
+### 常見錯誤及解決方案
+
+#### AttributeError: 'NoneType' object has no attribute 'get_member'
+
+**問題描述**：用戶在私訊中使用身分組指令時出現此錯誤。
+
+**解決方案**：
+
+- 身分組指令（如 `!join NCUFN`）必須在伺服器頻道中使用，不能在私訊中使用
+- 確保機器人已正確加入伺服器且有適當權限
+- 檢查機器人的成員意圖（Member Intents）是否已啟用
+
+#### 機器人無回應
+
+**可能原因**：
+
+- Discord Bot Token 錯誤或過期
+- 機器人權限不足
+- 網路連線問題
+- OpenAI API 配額用盡
+
+**檢查步驟**：
+
+1. 驗證 `.env` 檔案中的 Token 是否正確
+1. 確認機器人在 Discord 開發者控制台中的狀態
+1. 檢查機器人權限設定
+1. 查看控制台錯誤訊息
+
+#### 評分功能異常
+
+**可能原因**：
+
+- OpenAI API Key 無效
+- API 請求限制
+- HTML 檔案格式問題
+
+**解決方法**：
+
+- 檢查 OpenAI API Key 和配額
+- 確認 HTML 檔案包含必要的學生資訊
+- 查看詳細錯誤日誌
+
+### 系統監控
+
+#### 日誌位置
+
+- 控制台輸出：即時錯誤和狀態訊息
+- 資料庫日誌：`system_logs` 表記錄所有系統事件
+
+#### 效能監控
+
+```bash
+# 查看機器人記憶體使用量
+python -c "import psutil; print(f'Memory: {psutil.virtual_memory().percent}%')"
+
+# 檢查資料庫大小
+ls -lh homework.db
 ```
 
 ## 🗄️ 資料庫架構
@@ -220,67 +281,6 @@ python main.py --force-welcome
 - 管理身分組
 - 上傳檔案
 
-## 🐛 故障排除
-
-### 常見錯誤及解決方案
-
-#### AttributeError: 'NoneType' object has no attribute 'get_member'
-
-**問題描述**：用戶在私訊中使用身分組指令時出現此錯誤。
-
-**解決方案**：
-
-- 身分組指令（如 `!join NCUFN`）必須在伺服器頻道中使用，不能在私訊中使用
-- 確保機器人已正確加入伺服器且有適當權限
-- 檢查機器人的成員意圖（Member Intents）是否已啟用
-
-#### 機器人無回應
-
-**可能原因**：
-
-- Discord Bot Token 錯誤或過期
-- 機器人權限不足
-- 網路連線問題
-- OpenAI API 配額用盡
-
-**檢查步驟**：
-
-1. 驗證 `.env` 檔案中的 Token 是否正確
-2. 確認機器人在 Discord 開發者控制台中的狀態
-3. 檢查機器人權限設定
-4. 查看控制台錯誤訊息
-
-#### 評分功能異常
-
-**可能原因**：
-
-- OpenAI API Key 無效
-- API 請求限制
-- HTML 檔案格式問題
-
-**解決方法**：
-
-- 檢查 OpenAI API Key 和配額
-- 確認 HTML 檔案包含必要的學生資訊
-- 查看詳細錯誤日誌
-
-### 系統監控
-
-#### 日誌位置
-
-- 控制台輸出：即時錯誤和狀態訊息
-- 資料庫日誌：`system_logs` 表記錄所有系統事件
-
-#### 效能監控
-
-```bash
-# 查看機器人記憶體使用量
-python -c "import psutil; print(f'Memory: {psutil.virtual_memory().percent}%')"
-
-# 檢查資料庫大小
-ls -lh homework.db
-```
-
 ## 📊 評分標準
 
 ### 英語評分
@@ -297,6 +297,15 @@ ls -lh homework.db
 - 解釋合理性
 - 專業術語使用
 
+### 分數等級
+
+- A+ (90-100): 優秀
+- A (85-89): 良好
+- B+ (80-84): 中上
+- B (75-79): 中等
+- C+ (70-74): 中下
+- C (65-69): 及格
+- D (0-64): 不及格
 
 ## 🛠️ 開發指南
 
@@ -320,10 +329,10 @@ class HomeworkBot:
 ### 新增功能
 
 1. 在 `discord_bot.py` 中添加指令處理
-2. 在 `database.py` 中添加資料存取方法
-3. 更新 `config.py` 中的設定項目
-4. 測試功能並更新文檔
-5. **新增錯誤處理**：確保所有新功能都有適當的錯誤處理
+1. 在 `database.py` 中添加資料存取方法
+1. 更新 `config.py` 中的設定項目
+1. 測試功能並更新文檔
+1. **新增錯誤處理**：確保所有新功能都有適當的錯誤處理
 
 ### 資料庫遷移
 
@@ -347,8 +356,8 @@ logging.basicConfig(level=logging.DEBUG)
 #### 測試環境設定
 
 1. 建立測試用 Discord 伺服器
-2. 使用測試用 API Keys
-3. 隔離測試資料庫
+1. 使用測試用 API Keys
+1. 隔離測試資料庫
 
 ## 📋 常見問題
 
@@ -377,9 +386,9 @@ A: 身分組相關指令必須在伺服器頻道中使用，私訊中僅支援�
 A:
 
 1. 檢查控制台是否有錯誤訊息
-2. 確認網路連線正常
-3. 重新啟動機器人
-4. 檢查 Discord 和 OpenAI 服務狀態
+1. 確認網路連線正常
+1. 重新啟動機器人
+1. 檢查 Discord 和 OpenAI 服務狀態
 
 ## 🔄 更新日誌
 
@@ -401,10 +410,10 @@ A:
 ## 🤝 貢獻指南
 
 1. Fork 專案
-2. 建立功能分支 (`git checkout -b feature/AmazingFeature`)
-3. 提交變更 (`git commit -m 'Add some AmazingFeature'`)
-4. 推送到分支 (`git push origin feature/AmazingFeature`)
-5. 開啟 Pull Request
+1. 建立功能分支 (`git checkout -b feature/AmazingFeature`)
+1. 提交變更 (`git commit -m 'Add some AmazingFeature'`)
+1. 推送到分支 (`git push origin feature/AmazingFeature`)
+1. 開啟 Pull Request
 
 ## 📄 授權協議
 
@@ -416,9 +425,15 @@ A:
 - Email: [您的郵箱]
 - Discord: [您的 Discord]
 
+## 🙏 致謝
+
+- OpenAI 提供的 AI 評分服務
+- Discord.py 社群的技術支援
+- 所有參與測試的師生
+
 ---
 
-**⚠️ 注意事項**
+## 注意事項
 
 - 請確保遵守學校的學術誠信政策
 - 本系統僅用於教學輔助，最終成績以教師評定為準
