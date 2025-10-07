@@ -1,3 +1,8 @@
+# 環境變數檔案 (包含敏感資訊)
+.env
+.env.local
+.env.*.local
+
 # 忽略 response 和 uploads 資料夾
 response/
 uploads/
