@@ -1,7 +1,7 @@
 import json
 import re
 import aiohttp
-from config import OPENAI_API_KEY, MODEL, ENG_PROMPT_FILE, STATS_PROMPT_FILE
+from config import OPENAI_API_KEY, MODEL, DEFAULT_PROMPTS, SPECIFIC_PROMPTS, PROMPT_MAPPING_FILE
 
 
 class GradingService:
@@ -20,38 +20,44 @@ class GradingService:
                 raise RuntimeError(f"OpenAI error {resp.status}: {text}")
             return json.loads(text)
 
-    def load_prompt_template(self, prompt_type):
-        """從 txt 檔案讀取評分提示模板"""
-        # 根據 prompt_type 選擇對應的檔案路徑
-        if prompt_type.lower() == "eng":
-            prompt_file = ENG_PROMPT_FILE
-        elif prompt_type.lower() == "stats":
-            prompt_file = STATS_PROMPT_FILE
-        else:
-            # 如果是其他類型，使用舊的命名方式作為備用
-            prompt_file = f"prompt_{prompt_type}.txt"
+    def load_prompt_template(self, prompt_type, html_title=None):
+        """根據 HTML 標題和評分類型讀取對應的 prompt 模板"""
+        prompt_file = None
 
+        # 優先使用 HTML 標題匹配特定 prompt
+        if html_title and html_title in SPECIFIC_PROMPTS:
+            if prompt_type.lower() == "stats":
+                # 統計評分時，使用標題對應的特定 prompt
+                prompt_file = SPECIFIC_PROMPTS[html_title]
+                print(f"根據標題 '{html_title}' 使用特定統計 prompt: {prompt_file}")
+            else:
+                # 英語評分時，使用預設英語 prompt
+                prompt_file = DEFAULT_PROMPTS.get("eng")
+                print(f"英語評分使用預設 prompt，標題: '{html_title}'")
+        else:
+            # 使用預設 prompt
+            prompt_file = DEFAULT_PROMPTS.get(prompt_type.lower())
+            if html_title:
+                print(f"標題 '{html_title}' 未找到特定 prompt，使用預設 {prompt_type} prompt: {prompt_file}")
+            else:
+                print(f"無標題資訊，使用預設 {prompt_type} prompt: {prompt_file}")
+
+        # 如果還是沒有找到 prompt 檔案，使用舊的命名方式作為備用
+        if not prompt_file:
+            prompt_file = f"prompt_{prompt_type}.txt"
+            print(f"使用備用 prompt 檔案: {prompt_file}")
+
+        # 讀取 prompt 檔案
         try:
             with open(prompt_file, "r", encoding="utf-8") as f:
                 return f.read().strip()
         except FileNotFoundError:
-            default_prompt = f"""You are an expert {prompt_type} assessor specialized in evaluating student writing in EMI (English as a Medium of Instruction) contexts.
+            print(f"警告：找不到提示檔案 {prompt_file}")
+            return "None"
 
-題號：第{{question_number}}題
-
-學生答案：
-{{answer_text}}
-
-Feedback:  
-<詳細回饋內容，使用 Markdown 格式>"""
-
-            with open(prompt_file, "w", encoding="utf-8") as f:
-                f.write(default_prompt)
-            return default_prompt
-
-    async def grade_homework(self, answer_text, question_number, prompt_type):
+    async def grade_homework(self, answer_text, question_number, prompt_type, html_title=None):
         """使用 GPT 評分作業"""
-        prompt_template = self.load_prompt_template(prompt_type)
+        prompt_template = self.load_prompt_template(prompt_type, html_title)
         prompt = prompt_template.format(question_number=question_number, answer_text=answer_text)
 
         try:

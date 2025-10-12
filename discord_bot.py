@@ -14,7 +14,7 @@ from config import (
     CYCUIUBM_ROLE_ID,
 )
 from database import DatabaseManager
-from html_parser import extract_html_content
+from html_parser import extract_html_content, extract_html_title
 from grading import GradingService
 from report_generator import generate_html_report
 
@@ -346,19 +346,22 @@ class HomeworkBot:
             except Exception as e:
                 print(f"刪除訊息時發生錯誤: {e}")
 
-            # 解析 HTML 檔案
+            # 解析 HTML 檔案 - 包含標題資訊
             student_name, student_id, answer_text = extract_html_content(save_path)
+            html_title = extract_html_title(save_path)
+            print(f"📋 HTML 標題: {html_title}")
+
             question_number = 1
             attempt = self.db.get_max_attempt(user_id, question_number) + 1
 
-            # 進行評分
+            # 進行評分 - 傳入 HTML 標題
             await message.author.send("🔍 正在進行英語評分...")
-            eng_result = await self.grading_service.grade_homework(answer_text, question_number, "eng")
+            eng_result = await self.grading_service.grade_homework(answer_text, question_number, "eng", html_title)
             eng_score, eng_band, eng_feedback = self.grading_service.parse_grading_result(eng_result)
             print(f"英語評分結果: Score={eng_score}, Band={eng_band}, Feedback前50字={eng_feedback[:50]}...")
 
             await message.author.send("📊 正在進行統計評分...")
-            stats_result = await self.grading_service.grade_homework(answer_text, question_number, "stats")
+            stats_result = await self.grading_service.grade_homework(answer_text, question_number, "stats", html_title)
             stats_score, stats_band, stats_feedback = self.grading_service.parse_grading_result(stats_result)
             print(f"統計評分結果: Score={stats_score}, Band={stats_band}, Feedback前50字={stats_feedback[:50]}...")
 
@@ -389,6 +392,7 @@ class HomeworkBot:
             result_text = (
                 f"✅ **評分完成**\n"
                 f"學生: {student_name} ({student_id})\n"
+                f"題目: {html_title}\n"
                 f"第{question_number}題 第{attempt}次嘗試\n"
                 f"已完成英語與統計雙重評分\n"
             )

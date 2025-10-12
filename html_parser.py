@@ -1,5 +1,31 @@
 from bs4 import BeautifulSoup
 
+def extract_html_title(file_path):
+    """
+    解析 HTML 檔案，提取標題
+    優先順序：<title> > <h1> > 預設值
+
+    Args:
+        file_path (str): HTML 檔案路徑
+
+    Returns:
+        str: HTML 標題
+    """
+    with open(file_path, encoding="utf-8") as f:
+        soup = BeautifulSoup(f, "html.parser")
+    
+    # 優先從 <title> 標籤提取標題
+    title_tag = soup.find("title")
+    if title_tag and title_tag.get_text(strip=True):
+        return title_tag.get_text(strip=True)
+    
+    # 如果沒有 <title> 或內容為空，則從 <h1> 提取
+    h1_tag = soup.find("h1")
+    if h1_tag and h1_tag.get_text(strip=True):
+        return h1_tag.get_text(strip=True)
+    
+    # 如果都沒有找到，返回預設值
+    return "未知標題"
 
 def extract_html_content(file_path):
     """
@@ -26,10 +52,13 @@ def extract_html_content(file_path):
     answer_label = soup.find("label", string="作答區：")
     if answer_label:
         answer_tag = answer_label.find_next("p")
-        # 將 <br> 標籤轉換為換行符號以保留格式
-        for br in answer_tag.find_all("br"):
-            br.replace_with("\n")
-        answer_text = answer_tag.get_text("\n", strip=True)
+        if answer_tag:
+            # 將 <br> 標籤轉換為換行符號以保留格式
+            for br in answer_tag.find_all("br"):
+                br.replace_with("\n")
+            answer_text = answer_tag.get_text("\n", strip=True)
+        else:
+            answer_text = ""
     else:
         answer_text = ""
 

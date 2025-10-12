@@ -6,3 +6,6 @@ reports/*
 !reports/.gitkeep
 uploads/*
 !uploads/.gitkeep
+
+# Python 編譯後的檔案
+__pycache__/
