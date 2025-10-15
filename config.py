@@ -49,3 +49,28 @@ SPECIFIC_PROMPTS = {
     "SOCS_S-M ratio": os.path.join(PROMPTS_DIR, "prompts/S-M ratio_Stats Rubric.txt"),
     "SOCS_S-M ratio-2": os.path.join(PROMPTS_DIR, "prompts/S-M ratio_Stats Rubric.txt"),
 }
+
+
+def get_safe_filename(text):
+    """將文字轉換為安全的檔案/資料夾名稱"""
+    unsafe_chars = ["/", "\\", ":", "*", "?", '"', "<", ">", "|"]
+    safe_text = text
+    for char in unsafe_chars:
+        safe_text = safe_text.replace(char, "_")
+    return safe_text
+
+
+def get_student_upload_path(class_name, student_id, filename):
+    """取得學生上傳檔案的完整路徑"""
+    safe_class_name = get_safe_filename(class_name)
+    upload_dir = os.path.join(UPLOADS_DIR, safe_class_name, str(student_id))
+    os.makedirs(upload_dir, exist_ok=True)
+    return os.path.join(upload_dir, filename)
+
+
+def get_student_report_path(class_name, student_id, filename):
+    """取得學生報告檔案的完整路徑"""
+    safe_class_name = get_safe_filename(class_name)
+    report_dir = os.path.join(REPORTS_DIR, safe_class_name, str(student_id))
+    os.makedirs(report_dir, exist_ok=True)
+    return os.path.join(report_dir, filename)
