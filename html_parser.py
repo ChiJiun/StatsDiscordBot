@@ -1,41 +1,43 @@
 from bs4 import BeautifulSoup
 
+
 def extract_html_title(file_path):
     """
-    解析 HTML 檔案，提取標題
-    優先順序：<title> > <h1> > 預設值
+    解析 HTML 檔案，智慧提取作業標題
+    優先順序：<title> 標籤 > <h1> 標籤 > 預設值
 
     Args:
-        file_path (str): HTML 檔案路徑
+        file_path (str): HTML 檔案的完整路徑
 
     Returns:
-        str: HTML 標題
+        str: 提取到的 HTML 標題
     """
     with open(file_path, encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
-    
+
     # 優先從 <title> 標籤提取標題
     title_tag = soup.find("title")
     if title_tag and title_tag.get_text(strip=True):
         return title_tag.get_text(strip=True)
-    
+
     # 如果沒有 <title> 或內容為空，則從 <h1> 提取
     h1_tag = soup.find("h1")
     if h1_tag and h1_tag.get_text(strip=True):
         return h1_tag.get_text(strip=True)
-    
+
     # 如果都沒有找到，返回預設值
-    return "未知標題"
+    return "未知題目"
+
 
 def extract_html_content(file_path):
     """
-    解析 HTML 檔案，提取學生資訊和作答內容
+    解析 HTML 檔案，提取學生基本資訊和作答內容
 
     Args:
-        file_path (str): HTML 檔案路徑
+        file_path (str): HTML 檔案的完整路徑
 
     Returns:
-        tuple: (學生姓名, 學生學號, 作答內容)
+        tuple: (學生姓名, 學生學號, 作答內容文字)
     """
     with open(file_path, encoding="utf-8") as f:
         soup = BeautifulSoup(f, "html.parser")
@@ -45,8 +47,8 @@ def extract_html_content(file_path):
     id_label = soup.find("label", string="學號：")
 
     # 獲取 label 後面的 span 標籤內容
-    student_name = name_label.find_next("span").get_text(strip=True) if name_label else "未知"
-    student_id = id_label.find_next("span").get_text(strip=True) if id_label else "未知"
+    student_name = name_label.find_next("span").get_text(strip=True) if name_label else "未知姓名"
+    student_id = id_label.find_next("span").get_text(strip=True) if id_label else "未知學號"
 
     # 提取作答內容 - 尋找作答區域
     answer_label = soup.find("label", string="作答區：")

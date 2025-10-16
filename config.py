@@ -11,6 +11,9 @@ MODEL = "gpt-4o-mini"
 
 # Discord 頻道設定
 WELCOME_CHANNEL_ID = int(os.getenv("WELCOME_CHANNEL_ID", 0))  # 歡迎頻道 ID
+NCUFN_CHANNEL_ID = int(os.getenv("NCUFN_CHANNEL_ID", 0))  # 中央財金系頻道 ID
+NCUEC_CHANNEL_ID = int(os.getenv("NCUEC_CHANNEL_ID", 0))  # 中央經濟系頻道 ID
+CYCUIUBM_CHANNEL_ID = int(os.getenv("CYCUIUBM_CHANNEL_ID", 0))  # 中原國商頻道 ID
 
 # Discord 身分組設定
 NCUFN_ROLE_NAME = "NCUFN"  # 中央大學財金系
@@ -21,10 +24,6 @@ CYCUIUBM_ROLE_NAME = "CYCUIUBM"  # 中原大學國際商學學士學位學程
 NCUFN_ROLE_ID = int(os.getenv("NCUFN_ROLE_ID", 0))  # 可選：NCUFN 身分組 ID
 NCUEC_ROLE_ID = int(os.getenv("NCUEC_ROLE_ID", 0))  # 可選：NCUEC 身分組 ID
 CYCUIUBM_ROLE_ID = int(os.getenv("CYCUIUBM_ROLE_ID", 0))  # 可選：CYCUIUBM 身分組 ID
-
-# 向後相容的舊身分組名稱（如果其他地方還在使用）
-STUDENT_ROLE_NAME = "學生"
-TEACHER_ROLE_NAME = "教師"
 
 # 資料庫設定
 DB_PATH = "homework.db"

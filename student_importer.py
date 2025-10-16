@@ -148,21 +148,8 @@ class StudentImporter:
                         errors.append(f"第{index+2}行: 學生姓名為空")
                         continue
 
-                    # 檢查重複的學號（如果有學號欄位）
-                    if student_number:
-                        existing_student = self.db.get_student_by_number(student_number)
-                        if existing_student:
-                            skipped_count += 1
-                            print(f"⚠️ 跳過重複學號: {student_number} ({student_name})")
-                            continue
-
-                    # 檢查重複的Discord ID（如果有Discord ID欄位）
-                    if discord_id:
-                        existing_student = self.db.get_student_by_discord_id(discord_id)
-                        if existing_student:
-                            skipped_count += 1
-                            print(f"⚠️ 跳過重複Discord ID: {discord_id} ({student_name})")
-                            continue
+                    # 移除重複檢查，允許所有學生直接導入
+                    # 這樣可以支援跨班級重複，甚至同班級內重複
 
                     # 創建學生記錄 - 確保參數順序正確
                     db_student_id = self.db.create_student(
@@ -378,27 +365,44 @@ class StudentImporter:
 
             summary_data = []
             for class_id, class_name in all_classes:
-                students = self.db.get_students_by_class(class_id)
-                for student_id, student_name, student_number, discord_id in students:
-                    summary_data.append(
-                        {
-                            "班級": class_name,
-                            "學生ID": student_id,
-                            "姓名": student_name,
-                            "學號": student_number or "未設定",
-                            "Discord ID": discord_id or "未綁定",
-                            "狀態": "已綁定" if discord_id else "未綁定",
-                        }
-                    )
+                try:
+                    # 嘗試使用不同的方法獲取學生資料
+                    if hasattr(self.db, "get_students_by_class_id"):
+                        students = self.db.get_students_by_class_id(class_id)
+                    elif hasattr(self.db, "get_students_by_class"):
+                        students = self.db.get_students_by_class(class_id)
+                    else:
+                        print(f"⚠️ 無法獲取班級 {class_name} 的學生資料：缺少相應的資料庫方法")
+                        continue
+
+                    for student_data in students:
+                        if len(student_data) >= 4:
+                            student_id, student_name, student_number, discord_id = student_data[:4]
+                            summary_data.append(
+                                {
+                                    "班級": class_name,
+                                    "學生ID": student_id,
+                                    "姓名": student_name,
+                                    "學號": student_number or "未設定",
+                                    "Discord ID": discord_id or "未綁定",
+                                    "狀態": "已綁定" if discord_id else "未綁定",
+                                }
+                            )
+                except Exception as e:
+                    print(f"⚠️ 處理班級 {class_name} 時發生錯誤: {e}")
+                    continue
 
             # 創建DataFrame並導出
-            df = pd.DataFrame(summary_data)
-            df.to_excel(output_file, index=False, engine="openpyxl")
+            if summary_data:
+                df = pd.DataFrame(summary_data)
+                df.to_excel(output_file, index=False, engine="openpyxl")
 
-            print(f"✅ 學生資料摘要已導出到: {output_file}")
-            print(f"📊 總計: {len(summary_data)} 個學生記錄")
-
-            return True
+                print(f"✅ 學生資料摘要已導出到: {output_file}")
+                print(f"📊 總計: {len(summary_data)} 個學生記錄")
+                return True
+            else:
+                print("⚠️ 沒有學生資料可以導出")
+                return False
 
         except Exception as e:
             print(f"❌ 導出學生摘要時發生錯誤: {e}")

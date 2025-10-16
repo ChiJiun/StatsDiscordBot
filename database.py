@@ -125,22 +125,93 @@ class DatabaseManager:
         )
         return self.cur.fetchone()
 
+    def get_students_by_class_id(self, class_id):
+        """獲取指定班級ID的所有學生（統一方法）"""
+        self.cur.execute(
+            """
+            SELECT student_id, student_name, student_number, discord_id 
+            FROM Students 
+            WHERE class_id = ?
+            ORDER BY student_name
+        """,
+            (class_id,),
+        )
+        return self.cur.fetchall()
+
+    # 保留向後相容性的別名
+    def get_students_by_class(self, class_id):
+        """獲取指定班級的學生（向後相容性別名）"""
+        return self.get_students_by_class_id(class_id)
+
     def update_student_discord_id_by_student_id(self, student_number, discord_id):
-        """根據學號更新學生的 Discord ID"""
+        """根據學號更新學生的 Discord ID（向後相容性方法）"""
+        try:
+            # 檢查是否有重複學號
+            self.cur.execute("SELECT COUNT(*) FROM Students WHERE student_number = ?", (student_number,))
+            count = self.cur.fetchone()[0]
+
+            if count > 1:
+                print(f"⚠️ 警告：發現 {count} 個學號為 {student_number} 的學生，建議使用 update_student_discord_id_by_student_id_and_class 方法")
+
+            self.cur.execute(
+                """
+                UPDATE Students 
+                SET discord_id = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE student_number = ? AND (discord_id IS NULL OR discord_id = '')
+            """,
+                (discord_id, student_number),
+            )
+            self.conn.commit()
+            affected_rows = self.cur.rowcount
+
+            if affected_rows == 0 and count > 0:
+                # 檢查是否是因為已經有 Discord ID
+                self.cur.execute(
+                    "SELECT discord_id FROM Students WHERE student_number = ? AND discord_id IS NOT NULL AND discord_id != ''", (student_number,)
+                )
+                existing_discord = self.cur.fetchone()
+                if existing_discord:
+                    print(f"⚠️ 學號 {student_number} 已綁定 Discord ID: {existing_discord[0]}")
+
+            return affected_rows > 0
+
+        except Exception as e:
+            print(f"更新 Discord ID 失敗: {e}")
+            self.conn.rollback()
+            return False
+
+    def update_student_discord_id_by_student_id_and_class(self, student_number, discord_id, class_id):
+        """根據學號和班級ID更新學生的 Discord ID（避免重複學號問題）"""
         try:
             self.cur.execute(
                 """
                 UPDATE Students 
                 SET discord_id = ?, updated_at = CURRENT_TIMESTAMP
-                WHERE student_number = ?
+                WHERE student_number = ? AND class_id = ? AND (discord_id IS NULL OR discord_id = '')
             """,
-                (discord_id, student_number),
+                (discord_id, student_number, class_id),
             )
             self.conn.commit()
-            return self.cur.rowcount > 0
+            affected_rows = self.cur.rowcount
+            print(f"📝 更新結果：受影響的行數 = {affected_rows}")
+            return affected_rows > 0
         except Exception as e:
             print(f"更新 Discord ID 失敗: {e}")
+            self.conn.rollback()
             return False
+
+    def get_student_by_student_id_with_password_and_class(self, student_number, class_id):
+        """根據學號和班級ID獲取學生資料（包含密碼）"""
+        self.cur.execute(
+            """
+            SELECT s.student_number, s.student_name, s.discord_id, s.class_id, c.class_name, s.password
+            FROM Students s
+            JOIN Classes c ON s.class_id = c.class_id
+            WHERE s.student_number = ? AND s.class_id = ?
+        """,
+            (student_number, class_id),
+        )
+        return self.cur.fetchone()
 
     def get_student_by_number(self, student_number):
         """根據學號獲取學生資料"""
@@ -167,6 +238,11 @@ class DatabaseManager:
             (class_id,),
         )
         return self.cur.fetchall()
+
+    def get_class_by_name(self, class_name):
+        """根據班級名稱獲取班級資料"""
+        self.cur.execute("SELECT class_id, class_name FROM Classes WHERE class_name = ?", (class_name,))
+        return self.cur.fetchone()
 
     def get_max_attempt(self, user_id, question_number):
         """獲取使用者對特定題目的最大嘗試次數"""
@@ -262,49 +338,6 @@ class DatabaseManager:
             (class_id,),
         )
         return self.cur.fetchone()
-
-    def get_class_by_name(self, class_name):
-        """根據班級名稱獲取班級資料"""
-        self.cur.execute("SELECT class_id, class_name FROM Classes WHERE class_name = ?", (class_name,))
-        return self.cur.fetchone()
-
-    def update_student_class(self, student_id, new_class_id):
-        """更新學生的班級"""
-        self.cur.execute("UPDATE Students SET class_id = ?, updated_at = CURRENT_TIMESTAMP WHERE student_id = ?", (new_class_id, student_id))
-        self.conn.commit()
-        return self.cur.rowcount > 0
-
-    def delete_student(self, student_id):
-        """刪除學生（連同相關檔案記錄）"""
-        # 先刪除相關檔案記錄
-        self.cur.execute("DELETE FROM AssignmentFiles WHERE student_id = ?", (student_id,))
-        # 再刪除學生記錄
-        self.cur.execute("DELETE FROM Students WHERE student_id = ?", (student_id,))
-        self.conn.commit()
-        return self.cur.rowcount > 0
-
-    def update_class_name(self, class_id, new_name):
-        """更新班級名稱"""
-        try:
-            self.cur.execute("UPDATE Classes SET class_name = ? WHERE class_id = ?", (new_name, class_id))
-            self.conn.commit()
-            return self.cur.rowcount > 0
-        except sqlite3.IntegrityError:
-            return False
-
-    def delete_class(self, class_id):
-        """刪除班級（需要先處理相關學生）"""
-        # 檢查是否有學生在此班級
-        self.cur.execute("SELECT COUNT(*) FROM Students WHERE class_id = ?", (class_id,))
-        student_count = self.cur.fetchone()[0]
-
-        if student_count > 0:
-            return False
-
-        # 刪除班級
-        self.cur.execute("DELETE FROM Classes WHERE class_id = ?", (class_id,))
-        self.conn.commit()
-        return self.cur.rowcount > 0
 
     def close(self):
         """關閉資料庫連線"""

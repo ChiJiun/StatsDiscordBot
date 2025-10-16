@@ -5,10 +5,10 @@ import markdown
 def generate_html_report(
     student_name, student_id, question_number, attempt, answer_text, eng_score, eng_band, eng_feedback, stats_score, stats_band, stats_feedback
 ):
-    """生成 HTML 格式的評分報告"""
+    """生成美觀的 HTML 格式評分報告"""
 
     def escape_with_br(text: str) -> str:
-        """處理文字中的換行符號，轉換為 HTML 格式"""
+        """處理文字中的換行符號，轉換為 HTML 格式顯示"""
         placeholder = "__BR__"
         for br_tag in ["<br>", "<br/>", "\n", "<BR/>"]:
             text = text.replace(br_tag, placeholder)
@@ -17,8 +17,8 @@ def generate_html_report(
 
     safe_answer_text = escape_with_br(answer_text)
 
-    eng_feedback_clean = eng_feedback.strip() if eng_feedback else "無回饋內容"
-    stats_feedback_clean = stats_feedback.strip() if stats_feedback else "無回饋內容"
+    eng_feedback_clean = eng_feedback.strip() if eng_feedback else "暂无评语内容"
+    stats_feedback_clean = stats_feedback.strip() if stats_feedback else "暂无评语内容"
 
     if len(eng_feedback_clean) < 100 or "評分錯誤" in eng_feedback_clean:
         eng_feedback_html = f"<pre>{html.escape(eng_feedback_clean)}</pre>"
@@ -30,16 +30,16 @@ def generate_html_report(
     else:
         stats_feedback_html = markdown.markdown(stats_feedback_clean, extensions=["tables", "fenced_code"])
 
-    print(f"生成HTML報告 - 英語回饋長度: {len(eng_feedback_clean)}, 統計回饋長度: {len(stats_feedback_clean)}")
+    print(f"生成評分報告 - 英語評語長度: {len(eng_feedback_clean)}, 統計評語長度: {len(stats_feedback_clean)}")
 
     html_report = f"""<!DOCTYPE html>
 <html lang="zh-Hant">
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>作業評分報告</title>
+<title>統計學智慧評分報告</title>
 <style>
-/* ...existing CSS styles... */
+/* CSS 樣式保持不變 */
 body {{
     font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     background: linear-gradient(135deg, #e0eafc, #cfdef3);
@@ -137,22 +137,29 @@ section {{
 </style>
 </head>
 <body>
-    <h1>{student_name}_{student_id}_第{question_number}題_第{attempt}次</h1>
+    <h1>📊 統計學智慧評分報告</h1>
+    <p style="text-align: center; color: #7f8c8d; margin-bottom: 2em;">
+        學生：{student_name} | 學號：{student_id} | 題目：{question_number} | 第 {attempt} 次提交
+    </p>
     
     <section class="original-answer">
-        <h2>原始作答資料</h2>
+        <h2>📝 原始作答內容</h2>
         <div>{safe_answer_text}</div>
     </section>
     
     <section class="grading-section eng">
-        <h2>🔤 英語評分</h2>
+        <h2>🔤 英語表達評分與建議</h2>
         <div class="feedback-content">{eng_feedback_html}</div>
     </section>
     
     <section class="grading-section stats">
-        <h2>📊 統計評分</h2>
+        <h2>📈 統計內容評分與建議</h2>
         <div class="feedback-content">{stats_feedback_html}</div>
     </section>
+    
+    <footer style="text-align: center; margin-top: 3em; color: #95a5a6; font-size: 0.9em;">
+        <p>Statistics AI Grading System | 統計學智慧評分系統</p>
+    </footer>
 </body>
 </html>"""
 
