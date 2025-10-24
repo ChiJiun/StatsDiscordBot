@@ -9,3 +9,6 @@ uploads/*
 
 # Python 編譯後的檔案
 __pycache__/
+
+# 課程列表
+Course List
