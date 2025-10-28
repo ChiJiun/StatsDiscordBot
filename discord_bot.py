@@ -491,29 +491,12 @@ class HomeworkBot:
             os.makedirs(uploads_student_dir, exist_ok=True)
             os.makedirs(reports_student_dir, exist_ok=True)
 
-            # 保存上傳檔案
-            save_path, drive_id = await FileHandler.save_upload_file(
-                file, user_id, uploads_student_dir, file.filename, class_name, student_number or student_id_from_html
-            )
+            # 解析 HTML 內容（先保存到臨時檔案）
+            temp_path = os.path.join(UPLOADS_DIR, f"temp_{user_id}_{file.filename}")
+            await file.save(temp_path)
 
-            if save_path is None:
-                await message.author.send("❌ 檔案保存失敗")
-                try:
-                    await message.delete()
-                except (discord.Forbidden, discord.NotFound):
-                    pass
-                return
-
-            # 檔案成功保存後才刪除上傳訊息
-            try:
-                await message.delete()
-                print("✅ 已刪除上傳訊息")
-            except (discord.Forbidden, discord.NotFound):
-                print("⚠️ 無法刪除上傳訊息（可能權限不足或訊息已被刪除）")
-
-            # 解析 HTML 內容
-            html_title = extract_html_title(save_path)
-            student_name, student_id_from_html, answer_text = extract_html_content(save_path)
+            html_title = extract_html_title(temp_path)
+            student_name, student_id_from_html, answer_text = extract_html_content(temp_path)
 
             print(f"📝 HTML 標題: {html_title}")
             print(f"👤 學生姓名: {student_name}")
@@ -523,6 +506,7 @@ class HomeworkBot:
             # 檢查是否有答案內容
             if not answer_text or answer_text.strip() == "":
                 await message.author.send("📝 **作業內容檢查**\n\n" "系統在您的 HTML 檔案中沒有找到作答內容。\n" "請確認檔案包含完整的作答區域。")
+                os.remove(temp_path)
                 return
 
             # 使用 HTML 標題作為題目標題，如果沒有則使用檔案名稱
@@ -534,6 +518,45 @@ class HomeworkBot:
             attempt_number = max_attempt + 1
 
             print(f"🔄 嘗試次數: {attempt_number}")
+
+            # 設定上傳目錄
+            uploads_class_dir = os.path.join(UPLOADS_DIR, safe_class_name)
+            uploads_student_dir = os.path.join(uploads_class_dir, safe_folder_name)
+
+            # 設定報告目錄
+            reports_class_dir = os.path.join(REPORTS_DIR, safe_class_name)
+            reports_student_dir = os.path.join(reports_class_dir, safe_folder_name)
+
+            # 確保目錄存在
+            os.makedirs(uploads_student_dir, exist_ok=True)
+            os.makedirs(reports_student_dir, exist_ok=True)
+
+            # 保存上傳檔案（現在有 question_title 和 attempt_number）
+            save_path, drive_id = await FileHandler.save_upload_file(
+                file,
+                user_id,
+                uploads_student_dir,
+                file.filename,
+                class_name,
+                student_number or student_id_from_html,
+                db_student_name,
+                question_title,
+                attempt_number,
+            )
+
+            # 檔案成功保存後才刪除上傳訊息
+            try:
+                await message.delete()
+                print("✅ 已刪除上傳訊息")
+            except (discord.Forbidden, discord.NotFound):
+                print("⚠️ 無法刪除上傳訊息（可能權限不足或訊息已被刪除）")
+
+            # 刪除臨時檔案
+            os.remove(temp_path)
+
+            if save_path is None:
+                await message.author.send("❌ 檔案保存失敗")
+                return
 
             # 發送處理中訊息
             processing_msg = await message.author.send(
@@ -1175,233 +1198,3 @@ class HomeworkBot:
             traceback.print_exc()
             await user.send(f"❌ 驗證過程發生錯誤：{e}")
             return False
-
-    async def _process_html_file(self, message, file, user_id):
-        """處理 HTML 檔案上傳"""
-        try:
-            # 檢查檔案類型
-            if not file.filename.lower().endswith(".html"):
-                await message.author.send("📄 **檔案格式提醒**\n\n" "請上傳 `.html` 格式的作業檔案。\n" "其他格式的檔案無法進行評分處理。")
-                try:
-                    await message.delete()
-                except (discord.Forbidden, discord.NotFound):
-                    pass
-                return
-
-            # 獲取學生資料
-            student_data = self.db.get_student_by_discord_id(user_id)
-            if not student_data:
-                await message.author.send(
-                    "🔐 **身分驗證需要**\n\n"
-                    "系統找不到您的學生資料，請先完成以下任一步驟：\n"
-                    "1. 🏫 使用 `!join 學校代碼` 選擇學校身分\n"
-                    "2. 🔑 使用 `!login 學號 密碼` 登入現有帳戶"
-                )
-                try:
-                    await message.delete()
-                except (discord.Forbidden, discord.NotFound):
-                    pass
-                return
-
-            # 解析學生資料 - 根據實際返回結果調整
-            # get_student_by_discord_id 返回：(student_id, student_name, student_number, discord_id, class_id, class_name)
-            if len(student_data) == 6:
-                db_student_id, db_student_name, student_number, discord_id, class_id, class_name = student_data
-            else:
-                await message.author.send(f"❌ 學生資料格式錯誤，欄位數量：{len(student_data)}")
-                # 刪除上傳訊息
-                try:
-                    await message.delete()
-                except (discord.Forbidden, discord.NotFound):
-                    pass
-                return
-
-            # 檢查 class_name 是否存在
-            if not class_name:
-                await message.author.send("❌ 找不到您的班級資料")
-                # 刪除上傳訊息
-                try:
-                    await message.delete()
-                except (discord.Forbidden, discord.NotFound):
-                    pass
-                return
-
-            # 建立安全的檔名
-            safe_class_name = self._get_safe_filename(class_name)
-
-            # 使用學號作為資料夾名稱，如果沒有學號則使用 student_id
-            folder_name = student_number if student_number else str(db_student_id)
-            safe_folder_name = self._get_safe_filename(folder_name)
-
-            # 設定上傳目錄
-            uploads_class_dir = os.path.join(UPLOADS_DIR, safe_class_name)
-            uploads_student_dir = os.path.join(uploads_class_dir, safe_folder_name)
-
-            # 設定報告目錄
-            reports_class_dir = os.path.join(REPORTS_DIR, safe_class_name)
-            reports_student_dir = os.path.join(reports_class_dir, safe_folder_name)
-
-            # 確保目錄存在
-            os.makedirs(uploads_student_dir, exist_ok=True)
-            os.makedirs(reports_student_dir, exist_ok=True)
-
-            # 保存上傳檔案
-            save_path, drive_id = await FileHandler.save_upload_file(
-                file, user_id, uploads_student_dir, file.filename, class_name, student_number or student_id_from_html
-            )
-
-            if save_path is None:
-                await message.author.send("❌ 檔案保存失敗")
-                try:
-                    await message.delete()
-                except (discord.Forbidden, discord.NotFound):
-                    pass
-                return
-
-            # 檔案成功保存後才刪除上傳訊息
-            try:
-                await message.delete()
-                print("✅ 已刪除上傳訊息")
-            except (discord.Forbidden, discord.NotFound):
-                print("⚠️ 無法刪除上傳訊息（可能權限不足或訊息已被刪除）")
-
-            # 解析 HTML 內容
-            html_title = extract_html_title(save_path)
-            student_name, student_id_from_html, answer_text = extract_html_content(save_path)
-
-            print(f"📝 HTML 標題: {html_title}")
-            print(f"👤 學生姓名: {student_name}")
-            print(f"🆔 學號: {student_id_from_html}")
-            print(f"📄 答案內容長度: {len(answer_text)} 字元")
-
-            # 檢查是否有答案內容
-            if not answer_text or answer_text.strip() == "":
-                await message.author.send("📝 **作業內容檢查**\n\n" "系統在您的 HTML 檔案中沒有找到作答內容。\n" "請確認檔案包含完整的作答區域。")
-                return
-
-            # 使用 HTML 標題作為題目標題，如果沒有則使用檔案名稱
-            question_title = html_title if html_title else file.filename
-            print(f"📝 題目標題: {question_title}")
-
-            # 獲取下一次嘗試編號（使用題目標題）
-            max_attempt = self.db.get_max_attempt(user_id, question_title)
-            attempt_number = max_attempt + 1
-
-            print(f"🔄 嘗試次數: {attempt_number}")
-
-            # 發送處理中訊息
-            processing_msg = await message.author.send(
-                f"🔄 **正在處理您的作業**\n\n" f"📝 題目：{question_title}\n" f"🔢 第 {attempt_number} 次提交\n" f"⏳ 請稍候，系統正在進行智慧評分..."
-            )
-
-            # 執行英語評分
-            eng_feedback = await self.grading_service.grade_homework(
-                answer_text=answer_text, question_number=question_title, prompt_type="eng", html_title=html_title
-            )
-
-            # 執行統計評分
-            stats_feedback = await self.grading_service.grade_homework(
-                answer_text=answer_text, question_number=question_title, prompt_type="stats", html_title=html_title
-            )
-
-            print(f"✅ 英語評分完成")
-            print(f"✅ 統計評分完成")
-
-            # 解析評分結果
-            eng_score, eng_band, eng_feedback_clean = self.grading_service.parse_grading_result(eng_feedback)
-            stats_score, stats_band, stats_feedback_clean = self.grading_service.parse_grading_result(stats_feedback)
-
-            print(f"📊 英語分數: {eng_score}, 等級: {eng_band}")
-            print(f"📊 統計分數: {stats_score}, 等級: {stats_band}")
-
-            # 生成並保存報告
-            report_path, report_filename, report_drive_id = await FileHandler.generate_and_save_report(
-                db_student_name=db_student_name,
-                student_number=student_number,
-                student_id_from_html=student_id_from_html,
-                question_title=question_title,
-                attempt_number=attempt_number,
-                answer_text=answer_text,
-                eng_score=eng_score,
-                eng_band=eng_band,
-                eng_feedback_clean=eng_feedback_clean,
-                stats_score=stats_score,
-                stats_band=stats_band,
-                stats_feedback_clean=stats_feedback_clean,
-                reports_student_dir=reports_student_dir,
-                class_name=class_name,
-                student_id=student_number or student_id_from_html,
-            )
-
-            if not report_path:
-                await message.author.send("❌ 生成報告失敗")
-                return
-
-            # 記錄到資料庫（保留在 discord_bot.py 中）
-            overall_score = (eng_score + stats_score) / 2
-            combined_feedback = f"英語評分:\n{eng_feedback_clean}\n\n統計評分:\n{stats_feedback_clean}"
-
-            success = self.db.insert_submission(
-                user_id=user_id,
-                student_name=db_student_name,
-                student_id=student_number or student_id_from_html,
-                question_number=question_title,
-                attempt_number=attempt_number,
-                html_path=report_path,
-                score=overall_score,
-                feedback=combined_feedback,
-            )
-
-            if success:
-                print(f"✅ 已記錄到資料庫")
-            else:
-                print(f"⚠️ 記錄到資料庫失敗，但評分已完成")
-
-            # 更新處理中訊息
-            await processing_msg.edit(content="✨ **評分完成！** 正在準備您的詳細報告...")
-
-            # 發送結果
-            result_text = (
-                f"🎉 **作業評分完成**\n\n"
-                f"👤 **學生**：{db_student_name}\n"
-                f"📝 **題目**：{question_title}\n"
-                f"🔢 **提交次數**：第 {attempt_number} 次\n\n"
-                f"📊 **評分結果**：\n"
-                f"• 🔤 英語表達：{eng_score} 分 (等級: {eng_band})\n"
-                f"• 📈 統計內容：{stats_score} 分 (等級: {stats_band})\n"
-                f"• 🎯 總體分數：{overall_score:.1f} 分\n"
-            )
-
-            await message.author.send(result_text)
-
-            # 發送報告檔案
-            with open(report_path, "rb") as f:
-                await message.author.send(f"📄 **詳細評分報告**\n" f"完整的評分分析和改進建議請參考附件", file=discord.File(f, report_filename))
-
-            print(f"✅ 已發送結果給用戶")
-
-        except Exception as e:
-            print(f"❌ 處理檔案時發生錯誤: {e}")
-            import traceback
-
-            traceback.print_exc()
-
-            await message.author.send(f"❌ 處理檔案時發生錯誤: {e}")
-            try:
-                if "save_path" in locals() and os.path.exists(save_path):
-                    os.remove(save_path)
-            except:
-                pass
-
-        except Exception as e:
-            print(f"❌ 處理 HTML 檔案時發生錯誤: {e}")
-            import traceback
-
-            traceback.print_exc()
-            await message.author.send(f"❌ 處理 HTML 檔案時發生錯誤: {e}")
-
-            # 如果在檔案保存前出現錯誤，仍嘗試刪除訊息
-            try:
-                await message.delete()
-            except (discord.Forbidden, discord.NotFound):
-                pass

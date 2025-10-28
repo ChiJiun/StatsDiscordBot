@@ -102,44 +102,45 @@ class FileHandler:
         return safe_text
 
     @staticmethod
-    async def save_upload_file(file, user_id, uploads_student_dir, filename, class_name, student_id):
+    async def save_upload_file(file, user_id, uploads_student_dir, filename, class_name, student_id, db_student_name, question_title, attempt_number):
         """保存上傳檔案到本地，然後上傳到 Google Drive"""
         try:
             # 確保本地目錄存在
             os.makedirs(uploads_student_dir, exist_ok=True)
 
-            # 設定本地檔案路徑（移除 user_id 前綴）
-            local_path = os.path.join(uploads_student_dir, filename)
+            # 生成新的檔案名稱：學號_班級_姓名_標題_次數
+            new_filename = f"{student_id}_{class_name}_{db_student_name}_{question_title}_第{attempt_number}次.html"
+            local_path = os.path.join(uploads_student_dir, new_filename)
 
             # 保存到本地
             await file.save(local_path)
             print(f"✅ 檔案已保存到本地: {local_path}")
 
             # 上傳到 Google Drive（名稱與本地一致）
-            drive_id = await FileHandler().upload_to_drive(local_path, filename, class_name, student_id, UPLOADS_FOLDER_ID)
+            drive_id = await FileHandler().upload_to_drive(local_path, new_filename, class_name, student_id, UPLOADS_FOLDER_ID)
             return local_path, drive_id
         except Exception as e:
             print(f"❌ 檔案保存失敗: {e}")
             return None, None
 
     @staticmethod
-    async def process_html_file(message, file, user_id, class_name, student_id):
+    async def process_html_file(message, file, user_id, class_name, student_id, db_student_name, question_title, attempt_number):
         """處理 HTML 檔案的上傳和保存"""
         try:
             # 確保本地目錄存在
             os.makedirs(UPLOADS_DIR, exist_ok=True)
 
-            # 生成安全的檔案名稱
-            safe_filename = FileHandler.get_safe_filename(file.filename)
-            local_path = os.path.join(UPLOADS_DIR, safe_filename)
+            # 生成新的檔案名稱：學號_班級_姓名_標題_次數
+            new_filename = f"{student_id}_{class_name}_{db_student_name}_{question_title}_第{attempt_number}次.html"
+            local_path = os.path.join(UPLOADS_DIR, new_filename)
 
             # 保存到本地
             await file.save(local_path)
 
             # 上傳到 Google Drive
-            drive_id = await FileHandler().upload_to_drive(local_path, safe_filename, class_name, student_id, UPLOADS_FOLDER_ID)
+            drive_id = await FileHandler().upload_to_drive(local_path, new_filename, class_name, student_id, UPLOADS_FOLDER_ID)
 
-            return local_path, safe_filename, drive_id
+            return local_path, new_filename, drive_id
         except Exception as e:
             print(f"❌ 檔案保存失敗: {e}")
             return None, None, None
@@ -179,8 +180,8 @@ class FileHandler:
                 stats_feedback=stats_feedback_clean,
             )
 
-            # 保存報告檔案到本地（使用原始 question_title）
-            report_filename = f"{db_student_name}_{student_number or student_id_from_html}_{question_title}_第{attempt_number}次.html"
+            # 保存報告檔案到本地（學號_姓名_標題_次數）
+            report_filename = f"{student_number or student_id_from_html}_{db_student_name}_{question_title}_第{attempt_number}次.html"
             local_path = os.path.join(reports_student_dir, report_filename)
 
             with open(local_path, "w", encoding="utf-8") as f:
