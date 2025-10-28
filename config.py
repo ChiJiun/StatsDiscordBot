@@ -9,6 +9,19 @@ DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 MODEL = "gpt-4o-mini"
 
+# Google Drive 設定（OAuth2）
+UPLOADS_FOLDER_ID = os.getenv("UPLOADS_FOLDER_ID")
+REPORTS_FOLDER_ID = os.getenv("REPORTS_FOLDER_ID")
+
+# 檔案路徑設定
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+UPLOADS_DIR = os.path.join(BASE_DIR, "uploads")
+REPORTS_DIR = os.path.join(BASE_DIR, "reports")
+
+# 確保目錄存在
+os.makedirs(UPLOADS_DIR, exist_ok=True)
+os.makedirs(REPORTS_DIR, exist_ok=True)
+
 # Discord 頻道設定
 WELCOME_CHANNEL_ID = int(os.getenv("WELCOME_CHANNEL_ID", 0))  # 歡迎頻道 ID
 NCUFN_CHANNEL_ID = int(os.getenv("NCUFN_CHANNEL_ID", 0))  # 中央財金系頻道 ID
@@ -29,8 +42,6 @@ CYCUIUBM_ROLE_ID = int(os.getenv("CYCUIUBM_ROLE_ID", 0))  # 可選：CYCUIUBM �
 DB_PATH = "homework.db"
 
 # 目錄設定
-UPLOADS_DIR = "uploads"
-REPORTS_DIR = "reports"
 PROMPTS_DIR = "."  # 提示檔案存放目錄
 
 # Grading 系統設定
