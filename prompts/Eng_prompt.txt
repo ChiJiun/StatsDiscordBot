@@ -18,35 +18,35 @@ Below is a student's written response to a university-level Statistics question,
    Focus: Statistical reasoning sequence and academic explanation.
    Key criteria:
 
-   * Clear and sequential explanation of statistical steps.
-   * Purpose of each step (State, Plan, Do, Conclude) communicated through discourse markers.
-   * Sufficient elaboration using transitions like “Therefore”, “This means”, “Given that…”.
+   * Does the student clearly and sequentially explain the statistical steps using academic discourse?
+   * Is the purpose of each step (State, Plan, Do, Conclude) communicated clearly through appropriate discourse markers?
+   * Does each part contain sufficient elaboration using clear transitions (e.g., "Therefore", "This means", "Given that...") to organize reasoning and logical flow?
 
 2. **Lexical Range & Statistical Terminology (5 pts)**
    Focus: Word choice and technical vocabulary.
    Key criteria:
 
-   * Wide and accurate use of statistics-specific vocabulary.
-   * Appropriate use of terms such as sample proportion, population parameter, margin of error, standard deviation, confidence level.
-   * Paraphrasing and variation in word choice.
-   * Maintain formal and academic register.
+   * Does the student use a wide and accurate range of statistics-specific vocabulary?
+   * Are terms like sample proportion, population parameter, margin of error, standard deviation, confidence level used appropriately and precisely?
+   * Do they paraphrase and vary word choice appropriately?
+   * Do they maintain a formal and academic register?
 
 3. **Grammatical Accuracy & Sentence Structure (5 pts)**
    Focus: Grammar control and syntactic complexity.
    Key criteria:
 
-   * Accurate grammar (tense, agreement, articles, modals, passive voice).
-   * Varied and well-formed sentence structures (compound, complex).
-   * Consistent subject-verb-object patterns in technical explanations.
+   * How accurate is the grammar overall (tense, agreement, articles, modals, passive voice)?
+   * Are sentence structures varied (compound, complex) and well-formed?
+   * Are there consistent and well-structured subject-verb-object patterns in technical explanations?
 
 4. **Clarity & Cohesion (5 pts)**
    Focus: Coherence, connections, and flow.
    Key criteria:
 
-   * Logical organization and easy-to-follow text.
-   * Clear and unambiguous referencing devices.
-   * Appropriate use of cohesive devices and connectors.
-   * Precise and unambiguous statistical interpretation.
+   * Is the text logically organized and easy to follow?
+   * Are referencing devices (such as pronouns) clear and unambiguous?
+   * Are cohesive devices and connectors used appropriately?
+   * Are explanations precise and free from ambiguity, especially in the statistical interpretation phase?
 
 ---
 

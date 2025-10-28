@@ -1,7 +1,7 @@
 import json
 import re
 import aiohttp
-from config import OPENAI_API_KEY, MODEL, DEFAULT_PROMPTS, SPECIFIC_PROMPTS, PROMPT_MAPPING_FILE
+from config import OPENAI_API_KEY, MODEL, DEFAULT_PROMPTS, SPECIFIC_PROMPTS
 
 
 class GradingService:

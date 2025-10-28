@@ -47,17 +47,17 @@ PROMPTS_DIR = "."  # 提示檔案存放目錄
 # Grading 系統設定
 ENG_PROMPT_FILE = os.path.join(PROMPTS_DIR, "prompts/Eng_prompt.txt")
 STATS_PROMPT_FILE = os.path.join(PROMPTS_DIR, "prompts/Stats_prompt.txt")  # 預設統計 prompt
-PROMPT_MAPPING_FILE = os.path.join(PROMPTS_DIR, "prompts/prompt.json")  # Prompt 映射檔案
 
 # 預設 Prompt 檔案路徑配置
 DEFAULT_PROMPTS = {"eng": ENG_PROMPT_FILE, "stats": STATS_PROMPT_FILE}
 
-# 特定 Prompt 檔案路徑配置（根據您的 prompt.json）
+# 特定 Prompt 檔案路徑配置
 SPECIFIC_PROMPTS = {
     "Age and Viewing Habits 考卷": os.path.join(PROMPTS_DIR, "prompts/Stats_prompt.txt"),
     "Typing Practice": os.path.join(PROMPTS_DIR, "prompts/Typing Practice.txt"),
-    "SOCS_S-M ratio": os.path.join(PROMPTS_DIR, "prompts/S-M ratio_Stats Rubric.txt"),
-    "SOCS_S-M ratio-2": os.path.join(PROMPTS_DIR, "prompts/S-M ratio_Stats Rubric.txt"),
+    "SOCS_S-M ratio": os.path.join(PROMPTS_DIR, "prompts/S-M ratio_Stats_prompt.txt"),
+    "SOCS_S-M ratio-2": os.path.join(PROMPTS_DIR, "prompts/S-M ratio_Stats_prompt.txt"),
+    "Four-Step_Simulation of random guessing": os.path.join(PROMPTS_DIR, "prompts/Four-Step_Simulation_Stats_prompt.txt"),
 }
 
 
