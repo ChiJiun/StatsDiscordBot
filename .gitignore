@@ -12,3 +12,8 @@ __pycache__/
 
 # 課程列表
 Course List
+
+# Google Drive OAuth2
+token.json
+credentials.json
+service_account.json
