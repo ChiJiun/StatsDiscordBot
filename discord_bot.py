@@ -1198,3 +1198,61 @@ class HomeworkBot:
             traceback.print_exc()
             await user.send(f"❌ 驗證過程發生錯誤：{e}")
             return False
+
+    async def _handle_join_role(self, message, role_type):
+        """
+        處理使用者請求加入身分組
+        role_type 範例: "NCUFN", "NCUEC", "CYCUIUBM"
+        """
+        try:
+            # 確認為 Guild 內的 Member
+            guild = message.guild
+            member = message.author
+            if guild is None or not hasattr(member, "add_roles"):
+                return
+
+            # 延遲匯入 config 以避免循環導入
+            from config import (
+                NCUFN_ROLE_ID,
+                NCUEC_ROLE_ID,
+                CYCUIUBM_ROLE_ID,
+                NCUFN_ROLE_NAME,
+                NCUEC_ROLE_NAME,
+                CYCUIUBM_ROLE_NAME,
+            )
+
+            mapping = {
+                "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
+                "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
+                "CYCUIUBM": (CYCUIUBM_ROLE_ID, CYCUIUBM_ROLE_NAME),
+            }
+
+            if role_type not in mapping:
+                await message.author.send(f"找不到身分組類型：{role_type}")
+                return
+
+            role_id, role_name = mapping[role_type]
+            role = None
+            if role_id:
+                role = discord.utils.get(guild.roles, id=role_id)
+            if role is None and role_name:
+                role = discord.utils.get(guild.roles, name=role_name)
+
+            if role is None:
+                await message.author.send(f"伺服器中找不到身分組 {role_type}（請確認身分組存在且機器人有權限）")
+                return
+
+            await member.add_roles(role, reason="User requested role join")
+            await message.author.send(f"已為您加上身分組：{role.name}")
+
+            # 刪除用戶的 !join 訊息，保持頻道清潔
+            try:
+                await message.delete()
+            except discord.Forbidden:
+                print("無權限刪除訊息")
+            except discord.NotFound:
+                print("訊息已被刪除")
+
+        except Exception as e:
+            # 可改用 logging
+            await message.author.send(f"處理身分組時發生錯誤：{e}")
