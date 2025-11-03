@@ -1,441 +1,316 @@
-# 統計學 AI 系統 - HTML 作業評分機器人
+# 📊 統計學智慧評分系統 Discord Bot
 
-一個基於 Discord 的智能作業評分系統，專為統計學課程設計，提供自動化的 HTML 作業評分和反饋功能。
+## Statistics AI Grading System
 
-## 🎯 專案概述
+> 一個基於 Discord 的智慧作業評分系統，提供自動化的英語表達和統計內容雙向評分。
+>
+> An intelligent homework grading system based on Discord, providing automated dual assessment for English expression and statistical content.
 
-本系統是一個 Discord 機器人，能夠：
+---
 
-- 自動接收和處理學生提交的 HTML 作業
-- 使用 AI 進行英語和統計學雙重評分
-- 生成詳細的評分報告
-- 管理學生身分組和權限
-- 提供完整的資料庫記錄和統計功能
+## 🌟 功能特色 / Features
 
-## ✨ 主要功能
+- ✅ **自動評分系統** / Automated Grading
+  - 英語表達評分 (English Expression)
+  - 統計內容評分 (Statistical Content)
+  - AI 驅動的詳細反饋 (AI-driven Detailed Feedback)
 
-### 🎓 身分組管理
+- 👥 **多班級管理** / Multi-Class Management
+  - 支援三個班級：NCUFN、NCUEC、CYCUIUBM
+  - 獨立的班級頻道 (Separate Class Channels)
+  - 班級統計分析 (Class Statistics)
 
-- **一次性身分組選擇**：每位學生只能選擇一個身分組，選擇後無法更改
-- **支持的身分組**：
-  - 🏦 NCUFN - 中央大學財金系
-  - 📈 NCUEC - 中央大學經濟系
-  - 🌐 CYCUIUBM - 中原大學國際商學學士學位學程
+- 🔐 **身分驗證系統** / Authentication System
+  - Discord 身分組管理 (Role Management)
+  - 學號密碼登入 (Student ID & Password Login)
+  - Discord 帳號綁定 (Discord Account Binding)
 
-### 📝 作業評分系統
+- 📝 **作業追蹤** / Assignment Tracking
+  - 多次提交記錄 (Multiple Submission History)
+  - 詳細評分報告 (Detailed Grading Reports)
+  - 進度統計 (Progress Statistics)
 
-- **自動 HTML 解析**：提取學生姓名、學號和答案內容
-- **AI 雙重評分**：
-  - 英語評分：評估語言表達和文法
-  - 統計評分：評估統計概念和應用
-- **詳細反饋**：提供具體的改進建議
-- **分數等級**：A+, A, B+, B, C+, C, D 等級制度
+---
 
-### 📊 資料管理
+## 📋 系統需求 / Requirements
 
-- **完整記錄**：追蹤所有提交記錄和評分歷史
-- **統計分析**：提供各種統計資訊和報告
-- **資料匯出**：支援 CSV 格式匯出
-- **自動備份**：定期資料庫備份功能
-
-### 🔧 系統管理
-
-- **頻道管理**：自動訊息清理，保持頻道整潔
-- **權限控制**：管理員專用指令
-- **歡迎系統**：新成員自動歡迎訊息更新
-- **日誌記錄**：完整的系統操作日誌
-
-## 🏗️ 系統架構
-
-```text
-📦 統計學AI系統
-├── 🤖 Discord Bot (discord_bot.py)
-│   ├── 訊息處理
-│   ├── 身分組管理
-│   ├── 檔案處理
-│   └── 指令系統
-├── 🗄️ 資料庫系統 (database.py)
-│   ├── 用戶管理
-│   ├── 提交記錄
-│   ├── 身分組記錄
-│   └── 系統日誌
-├── 🧠 AI評分服務 (grading.py)
-│   ├── OpenAI整合
-│   ├── 英語評分
-│   └── 統計評分
-├── 📄 HTML解析器 (html_parser.py)
-│   └── 內容提取
-├── 📋 報告生成器 (report_generator.py)
-│   └── HTML報告生成
-└── ⚙️ 配置管理 (config.py)
-    └── 環境變數管理
-```
-
-## 🚀 快速開始
-
-### 環境需求
-
-- Python 3.8+
+- Python 3.8 或更高版本 / Python 3.8+
 - Discord Bot Token
-- OpenAI API Key
+- OpenAI API Key (用於 AI 評分)
 
-### 安裝步驟
+---
 
-1. **克隆專案**
+## 🚀 快速開始 / Quick Start
 
-```bash
-git clone <repository-url>
-cd Stats/code/Bot
-```
-
-1. **安裝依賴**
+### 1️⃣ 安裝依賴 / Install Dependencies
 
 ```bash
-pip install discord.py aiohttp openai beautifulsoup4
+pip install -r requirements.txt
 ```
 
-1. **配置環境變數**
-   創建 `.env` 文件：
+### 2️⃣ 配置設定 / Configuration
 
-```env
-DISCORD_TOKEN=your_discord_bot_token
-OPENAI_API_KEY=your_openai_api_key
-ADMIN_USER_ID=your_discord_user_id
-WELCOME_CHANNEL_ID=welcome_channel_id
-NCUFN_CHANNEL_ID=ncufn_channel_id
-NCUEC_CHANNEL_ID=ncuec_channel_id
-CYCUIUBM_CHANNEL_ID=cycuiubm_channel_id
-NCUFN_ROLE_ID=ncufn_role_id
-NCUEC_ROLE_ID=ncuec_role_id
-CYCUIUBM_ROLE_ID=cycuiubm_role_id
+根目錄匯入.env token.json
+Csvprocessors/password_importer 準備各班資料夾
+
+### 3️⃣ 初始化資料庫 / Initialize Database
+
+```bash
+python database.py
 ```
 
-1. **啟動機器人**
+這會創建必要的資料表並顯示資料庫管理選單。
+
+### 4️⃣ (可選) 導入學生密碼 / Import Student Passwords
+
+準備密碼檔案（格式：`學號_姓名.txt`，內容為密碼）：
+
+```bash
+python CsvProcessors/password_importer/password_importer.py
+```
+
+### 5️⃣ 導入學生資料 / Import Student Data
+
+準備班級清單 Excel 檔案（放在 `Course List` 資料夾）：
+
+- `course list.xlsx` (包含 NCUFN、NCUEC、CYCUIUBM 三個工作表)
+
+執行導入腳本：
+
+```bash
+python CsvProcessors/student_importer.py
+```
+
+### 6️⃣ 啟動機器人 / Start the Bot
+
+正常啟動：
 
 ```bash
 python main.py
 ```
 
-1. **強制更新歡迎訊息**（可選）
+強制更新歡迎訊息：
 
 ```bash
 python main.py --force-welcome
 ```
 
-## 📱 使用指南
+---
 
-### 學生使用
-
-#### 1. 選擇身分組
+## 📁 專案結構 / Project Structure
 
 ```bash
-!join NCUFN    # 加入中央大學財金系
-!join NCUEC    # 加入中央大學經濟系
-!join CYCUIUBM # 加入中原大學國際商學學士學位學程
+Bot/
+├── main.py                          # 主程式入口
+├── discord_bot.py                   # Discord 機器人核心
+├── database.py                      # 資料庫管理
+├── grading.py                       # AI 評分服務
+├── html_parser.py                   # HTML 解析器
+├── file_handler.py                  # 檔案處理器
+├── config.py                        # 配置檔案（需自行創建）
+├── requirements.txt                 # Python 依賴套件
+├── homework_bot.db                  # SQLite 資料庫（自動生成）
+│
+├── Course List/                     # 課程清單資料夾
+│   └── course list.xlsx            # 學生名單（三個工作表）
+│
+├── CsvProcessors/                   # 資料處理工具
+│   ├── student_importer.py         # 學生資料導入
+│   └── password_importer/          # 密碼導入工具
+│       ├── password_importer.py
+│       ├── NCUFN/                  # 各班級密碼檔案
+│       ├── NCUEC/
+│       └── CYCUIUBM/
+│
+├── uploads/                         # 上傳檔案儲存（自動生成）
+│   ├── NCUFN/
+│   ├── NCUEC/
+│   └── CYCUIUBM/
+│
+└── reports/                         # 評分報告儲存（自動生成）
+    ├── NCUFN/
+    ├── NCUEC/
+    └── CYCUIUBM/
 ```
-
-#### 2. 提交作業
-
-- 直接在指定頻道上傳 `.html` 檔案
-- 系統會自動處理並評分
-- 評分結果將私訊發送
-
-#### 3. 查看資訊
-
-```bash
-!help        # 查看幫助指令
-!my-roles    # 查看我的身分組
-```
-
-### 管理員使用
-
-#### 1. 系統管理
-
-```bash
-!update-welcome  # 更新歡迎訊息
-```
-
-#### 2. 資料庫管理
-
-```bash
-!db stats    # 查看資料庫統計
-!db backup   # 備份資料庫
-!db clean    # 清理舊資料
-!db export   # 匯出資料
-```
-
-## 🐛 故障排除
-
-### 常見錯誤及解決方案
-
-#### AttributeError: 'NoneType' object has no attribute 'get_member'
-
-**問題描述**：用戶在私訊中使用身分組指令時出現此錯誤。
-
-**解決方案**：
-
-- 身分組指令（如 `!join NCUFN`）必須在伺服器頻道中使用，不能在私訊中使用
-- 確保機器人已正確加入伺服器且有適當權限
-- 檢查機器人的成員意圖（Member Intents）是否已啟用
-
-#### 機器人無回應
-
-**可能原因**：
-
-- Discord Bot Token 錯誤或過期
-- 機器人權限不足
-- 網路連線問題
-- OpenAI API 配額用盡
-
-**檢查步驟**：
-
-1. 驗證 `.env` 檔案中的 Token 是否正確
-1. 確認機器人在 Discord 開發者控制台中的狀態
-1. 檢查機器人權限設定
-1. 查看控制台錯誤訊息
-
-#### 評分功能異常
-
-**可能原因**：
-
-- OpenAI API Key 無效
-- API 請求限制
-- HTML 檔案格式問題
-
-**解決方法**：
-
-- 檢查 OpenAI API Key 和配額
-- 確認 HTML 檔案包含必要的學生資訊
-- 查看詳細錯誤日誌
-
-### 系統監控
-
-#### 日誌位置
-
-- 控制台輸出：即時錯誤和狀態訊息
-- 資料庫日誌：`system_logs` 表記錄所有系統事件
-
-#### 效能監控
-
-```bash
-# 查看機器人記憶體使用量
-python -c "import psutil; print(f'Memory: {psutil.virtual_memory().percent}%')"
-
-# 檢查資料庫大小
-ls -lh homework.db
-```
-
-## 🗄️ 資料庫架構
-
-### 主要資料表
-
-#### users - 用戶資訊
-
-- `discord_user_id`: Discord 用戶 ID
-- `username`: 用戶名稱
-- `role_group`: 身分組
-- `created_at`: 建立時間
-
-#### submissions - 提交記錄
-
-- `discord_user_id`: 提交者 ID
-- `student_name`: 學生姓名
-- `student_id`: 學號
-- `question_number`: 題目編號
-- `attempt`: 嘗試次數
-- `eng_score`: 英語分數
-- `stats_score`: 統計分數
-- `overall_score`: 總分
-- `status`: 處理狀態
-
-#### role_assignments - 身分組分配
-
-- `discord_user_id`: 用戶 ID
-- `role_name`: 身分組名稱
-- `assigned_at`: 分配時間
-- `is_active`: 是否活躍
-
-### 資料關係
-
-- 一對多：用戶 → 提交記錄
-- 一對多：用戶 → 身分組記錄
-- 外鍵約束確保資料完整性
-
-## 🔧 配置說明
-
-### 重要設定
-
-- `WELCOME_CHANNEL_ID`: 歡迎頻道，僅用於身分組選擇
-- `NCUFN_CHANNEL_ID`: 財金系專用頻道
-- `NCUEC_CHANNEL_ID`: 經濟系專用頻道
-- `CYCUIUBM_CHANNEL_ID`: 國際商學專用頻道
-
-### 權限設定
-
-機器人需要以下權限：
-
-- 讀取訊息歷史
-- 發送訊息
-- 管理訊息（刪除）
-- 添加反應
-- 管理身分組
-- 上傳檔案
-
-## 📊 評分標準
-
-### 英語評分
-
-- 語法正確性
-- 詞彙使用
-- 表達清晰度
-- 學術寫作風格
-
-### 統計評分
-
-- 概念理解
-- 計算正確性
-- 解釋合理性
-- 專業術語使用
-
-### 分數等級
-
-- A+ (90-100): 優秀
-- A (85-89): 良好
-- B+ (80-84): 中上
-- B (75-79): 中等
-- C+ (70-74): 中下
-- C (65-69): 及格
-- D (0-64): 不及格
-
-## 🛠️ 開發指南
-
-### 程式碼結構
-
-```python
-class HomeworkBot:
-    def __init__(self):          # 初始化
-    async def on_ready(self):    # 機器人啟動
-    async def on_message(self):  # 訊息處理
-    async def on_member_join(self): # 新成員加入
-```
-
-### 錯誤處理最佳實踐
-
-1. **檢查 Guild 存在性**：在處理伺服器相關操作前檢查 `message.guild`
-2. **適當的錯誤回饋**：向用戶提供清楚的錯誤訊息
-3. **日誌記錄**：記錄所有重要操作和錯誤
-4. **防護性編程**：使用 try-except 包裝可能失敗的操作
-
-### 新增功能
-
-1. 在 `discord_bot.py` 中添加指令處理
-1. 在 `database.py` 中添加資料存取方法
-1. 更新 `config.py` 中的設定項目
-1. 測試功能並更新文檔
-1. **新增錯誤處理**：確保所有新功能都有適當的錯誤處理
-
-### 資料庫遷移
-
-```python
-# 備份現有資料庫
-db.backup_database()
-
-# 執行遷移腳本
-# 更新資料庫架構
-```
-
-### 除錯技巧
-
-#### 啟用詳細日誌
-
-```python
-import logging
-logging.basicConfig(level=logging.DEBUG)
-```
-
-#### 測試環境設定
-
-1. 建立測試用 Discord 伺服器
-1. 使用測試用 API Keys
-1. 隔離測試資料庫
-
-## 📋 常見問題
-
-### Q: 如何重置用戶的身分組？
-
-A: 目前系統設計為一次性選擇，如需重置請聯繫系統管理員手動處理。
-
-### Q: 支援哪些檔案格式？
-
-A: 目前僅支援 `.html` 格式的作業檔案。
-
-### Q: 評分需要多長時間？
-
-A: 通常在 30 秒到 2 分鐘內完成，取決於檔案大小和 AI 服務回應時間。
-
-### Q: 如何查看歷史提交記錄？
-
-A: 使用 `!my-submissions` 指令查看個人提交歷史。
-
-### Q: 為什麼在私訊中使用指令沒有反應？
-
-A: 身分組相關指令必須在伺服器頻道中使用，私訊中僅支援查看類指令（如 `!help`, `!my-roles`）。
-
-### Q: 機器人突然停止工作怎麼辦？
-
-A:
-
-1. 檢查控制台是否有錯誤訊息
-1. 確認網路連線正常
-1. 重新啟動機器人
-1. 檢查 Discord 和 OpenAI 服務狀態
-
-## 🔄 更新日誌
-
-### v1.1.0 (2024-01-XX)
-
-- 🐛 修復私訊指令錯誤
-- ✅ 改善錯誤處理機制
-- 📝 更新故障排除文檔
-- 🔧 優化系統穩定性
-
-### v1.0.0 (2024-01-XX)
-
-- ✅ 基礎 Discord 機器人功能
-- ✅ HTML 作業處理和評分
-- ✅ 身分組管理系統
-- ✅ 資料庫記錄和統計
-- ✅ AI 評分整合
-
-## 🤝 貢獻指南
-
-1. Fork 專案
-1. 建立功能分支 (`git checkout -b feature/AmazingFeature`)
-1. 提交變更 (`git commit -m 'Add some AmazingFeature'`)
-1. 推送到分支 (`git push origin feature/AmazingFeature`)
-1. 開啟 Pull Request
-
-## 📄 授權協議
-
-本專案採用 MIT 授權協議 - 詳見 [LICENSE](LICENSE) 文件
-
-## 📞 聯繫方式
-
-- 專案維護者: [您的名稱]
-- Email: [您的郵箱]
-- Discord: [您的 Discord]
-
-## 🙏 致謝
-
-- OpenAI 提供的 AI 評分服務
-- Discord.py 社群的技術支援
-- 所有參與測試的師生
 
 ---
 
-## 注意事項
+## 🎮 使用指南 / User Guide
 
-- 請確保遵守學校的學術誠信政策
-- 本系統僅用於教學輔助，最終成績以教師評定為準
-- 定期備份重要資料，避免資料遺失
-- **身分組指令必須在伺服器頻道中使用，不支援私訊操作**
+### 學生使用流程 / Student Workflow
+
+1. **加入身分組** (在歡迎頻道)
+
+   ```bash
+   !join NCUFN    # 中央大學財金系
+   !join NCUEC    # 中央大學經濟系
+   !join CYCUIUBM # 中原大學國商學程
+   ```
+
+2. **登入系統** (在班級頻道)
+
+   ```bash
+   !login 學號 密碼
+   ```
+
+3. **上傳作業**
+   - 直接拖拽 `.html` 檔案到班級頻道
+   - 系統會自動評分並私訊結果
+
+4. **查看記錄**
+
+```bash
+!my-submissions  # 查看作業記錄
+!class-stats     # 查看班級統計
+```
+
+### 管理員指令 / Admin Commands
+
+```bash
+!class-list              # 查看所有班級
+!student-list 班級名稱    # 查看學生清單
+!update-welcome          # 更新歡迎訊息
+```
+
+### 完整指令列表 / Complete Command List
+
+```bash
+!help              # 顯示幫助訊息
+!join <學校代碼>    # 加入身分組
+!login 學號 密碼    # 登入系統
+!my-roles          # 查看我的身分
+!class-stats       # 查看班級統計
+!my-submissions    # 查看作業記錄
+```
+
+---
+
+## 🗄️ 資料庫結構 / Database Schema
+
+### Classes (班級表)
+
+```sql
+class_id        INTEGER PRIMARY KEY
+class_name      VARCHAR(50) UNIQUE
+created_at      DATETIME
+```
+
+### Students (學生表)
+
+```sql
+student_id      INTEGER PRIMARY KEY
+student_name    VARCHAR(100)
+student_number  VARCHAR(50)
+discord_id      VARCHAR(20) UNIQUE
+class_id        INTEGER
+password        VARCHAR(50)
+created_at      DATETIME
+updated_at      DATETIME
+```
+
+### AssignmentFiles (作業檔案表)
+
+```sql
+file_id         INTEGER PRIMARY KEY
+student_id      VARCHAR(20)
+class_id        INTEGER
+file_path       VARCHAR(500)
+question_number INTEGER
+attempt_number  INTEGER
+score           REAL
+feedback        TEXT
+upload_time     DATETIME
+```
+
+---
+
+## 🔧 開發工具 / Development Tools
+
+### 資料庫管理工具
+
+```bash
+python database.py
+```
+
+提供以下功能：
+
+- 查看資料庫統計
+- 管理班級和學生
+- 檢查資料完整性
+
+### 學生資料導入
+
+```bash
+python CsvProcessors/student_importer.py
+```
+
+### 密碼導入
+
+```bash
+python CsvProcessors/password_importer/password_importer.py
+```
+
+---
+
+## 📊 評分系統 / Grading System
+
+### 評分標準 / Grading Criteria
+
+- **英語表達 (English Expression)**: 40%
+  - 文法正確性 (Grammar)
+  - 詞彙使用 (Vocabulary)
+  - 表達清晰度 (Clarity)
+
+- **統計內容 (Statistical Content)**: 60%
+  - 概念理解 (Concept Understanding)
+  - 計算準確性 (Calculation Accuracy)
+  - 解釋完整性 (Interpretation Completeness)
+
+### 評分等級 / Grading Levels
+
+- A (90-100): 優秀 / Excellent
+- B (80-89): 良好 / Good
+- C (70-79): 及格 / Pass
+- D (60-69): 需改進 / Needs Improvement
+- F (0-59): 不及格 / Fail
+
+---
+
+## 🛠️ 疑難排解 / Troubleshooting
+
+### 常見問題 / Common Issues
+
+**Q: 機器人無法啟動？**
+
+- 檢查 `config.py` 是否正確配置
+- 確認 Discord Token 有效
+- 檢查 Python 版本是否 >= 3.8
+
+**Q: 無法上傳作業？**
+
+- 確認已完成登入或加入身分組
+- 檢查是否在正確的班級頻道
+- 確認檔案格式為 `.html`
+
+**Q: 評分失敗？**
+
+- 檢查 OpenAI API Key 是否有效
+- 確認 API 配額是否充足
+- 查看機器人控制台的錯誤訊息
+
+**Q: 學生資料導入失敗？**
+
+- 確認 Excel 檔案格式正確
+- 檢查工作表名稱是否為 NCUFN、NCUEC、CYCUIUBM
+- 確認必要欄位（Student ID、Name、Password）存在
+
+## 📮 聯絡方式 / Contact
+
+如有問題或建議，請聯繫系統管理員。
+
+## ⚠️ 注意事項 / Important Notes
+
+1. **資料安全**：請妥善保管 `config.py` 和資料庫檔案
+2. **API 配額**：注意 OpenAI API 的使用配額
+3. **備份**：定期備份 `homework_bot.db` 資料庫
+4. **隱私**：學生資料僅用於評分系統，請遵守隱私規範
