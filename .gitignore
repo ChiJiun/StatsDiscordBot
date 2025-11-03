@@ -12,6 +12,13 @@ __pycache__/
 
 # 課程列表
 Course List/
+CsvProcessors/html_parser/student_htmls/
+CsvProcessors/password_importer/CYCUIUBM/
+CsvProcessors/password_importer/NCUEC/
+CsvProcessors/password_importer/NCUFN/
+CsvProcessors/html_parser/EC_output.xlsx
+CsvProcessors/html_parser/FN_output.xlsx
+CsvProcessors/html_parser/IUBM_output.xlsx
 
 # Google Drive OAuth2
 token.json

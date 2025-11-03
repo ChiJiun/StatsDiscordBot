@@ -7,12 +7,18 @@ import os
 
 class DatabaseManager:
     def __init__(self):
+        # 當初始化 DatabaseManager 時，會自動連接/創建資料庫
         self.conn = sqlite3.connect(DB_PATH, check_same_thread=False)
         self.cur = self.conn.cursor()
+        # 自動創建所有必要的資料表
         self._create_tables()
 
     def _create_tables(self):
         """建立資料表結構"""
+        # CREATE TABLE IF NOT EXISTS 會確保：
+        # 1. 如果資料表不存在，就創建它
+        # 2. 如果資料表已存在，就跳過不會出錯
+
         # 建立班級資料表
         self.cur.execute(
             """
@@ -461,3 +467,272 @@ class DatabaseManager:
         except Exception as e:
             print(f"查找學生時發生錯誤: {e}")
             return None
+
+def main():
+    """主程式 - 用於獨立運行資料庫管理"""
+    import sys
+    
+    print("=" * 60)
+    print("📊 統計學智慧評分系統 - 資料庫管理工具")
+    print("📊 Statistics AI Grading System - Database Manager")
+    print("=" * 60)
+    
+    try:
+        # 初始化資料庫
+        print("\n🔧 正在初始化資料庫 / Initializing database...")
+        db = DatabaseManager()
+        print("✅ 資料庫連接成功 / Database connected successfully")
+        print(f"📁 資料庫路徑 / Database path: {DB_PATH}")
+        
+        # 顯示資料庫統計
+        print("\n" + "=" * 60)
+        print("📈 資料庫統計 / Database Statistics")
+        print("=" * 60)
+        
+        # 顯示所有班級
+        classes = db.get_all_classes()
+        print(f"\n🏫 班級數量 / Number of classes: {len(classes)}")
+        for class_id, class_name in classes:
+            students = db.get_students_by_class_id(class_id)
+            print(f"  • {class_name} (ID: {class_id}): {len(students)} 位學生 / students")
+        
+        # 顯示總學生數
+        db.cur.execute("SELECT COUNT(*) FROM Students")
+        total_students = db.cur.fetchone()[0]
+        print(f"\n👥 總學生數 / Total students: {total_students}")
+        
+        # 顯示已綁定 Discord 的學生數
+        db.cur.execute("SELECT COUNT(*) FROM Students WHERE discord_id IS NOT NULL AND discord_id != ''")
+        bound_students = db.cur.fetchone()[0]
+        print(f"🔗 已綁定 Discord / Discord bound: {bound_students}")
+        print(f"⏳ 未綁定 Discord / Not bound: {total_students - bound_students}")
+        
+        # 顯示作業提交統計
+        db.cur.execute("SELECT COUNT(*) FROM AssignmentFiles")
+        total_submissions = db.cur.fetchone()[0]
+        print(f"\n📝 總作業提交數 / Total submissions: {total_submissions}")
+        
+        # 互動式選單
+        while True:
+            print("\n" + "=" * 60)
+            print("🔧 管理功能選單 / Management Menu")
+            print("=" * 60)
+            print("1. 查看所有班級 / View all classes")
+            print("2. 查看班級學生列表 / View class students")
+            print("3. 查看學生詳細資料 / View student details")
+            print("4. 創建新班級 / Create new class")
+            print("5. 資料庫完整統計 / Full database statistics")
+            print("6. 檢查資料庫完整性 / Check database integrity")
+            print("0. 退出 / Exit")
+            
+            choice = input("\n請選擇功能 / Please choose (0-6): ").strip()
+            
+            if choice == "1":
+                show_all_classes(db)
+            elif choice == "2":
+                show_class_students(db)
+            elif choice == "3":
+                show_student_details(db)
+            elif choice == "4":
+                create_new_class(db)
+            elif choice == "5":
+                show_full_statistics(db)
+            elif choice == "6":
+                check_database_integrity(db)
+            elif choice == "0":
+                print("\n👋 再見！/ Goodbye!")
+                break
+            else:
+                print("❌ 無效的選擇 / Invalid choice")
+        
+        db.close()
+        print("\n✅ 資料庫連接已關閉 / Database connection closed")
+        
+    except Exception as e:
+        print(f"\n❌ 發生錯誤 / Error occurred: {e}")
+        import traceback
+        traceback.print_exc()
+
+
+def show_all_classes(db):
+    """顯示所有班級"""
+    print("\n" + "=" * 60)
+    print("🏫 所有班級列表 / All Classes")
+    print("=" * 60)
+    
+    classes = db.get_all_classes()
+    if not classes:
+        print("目前沒有任何班級 / No classes found")
+        return
+    
+    for class_id, class_name in classes:
+        students = db.get_students_by_class_id(class_id)
+        bound_count = sum(1 for s in students if s[3])  # s[3] 是 discord_id
+        
+        print(f"\n📚 {class_name}")
+        print(f"  • 班級 ID / Class ID: {class_id}")
+        print(f"  • 學生數 / Students: {len(students)}")
+        print(f"  • 已綁定 Discord / Bound: {bound_count}")
+        print(f"  • 未綁定 Discord / Not bound: {len(students) - bound_count}")
+
+
+def show_class_students(db):
+    """顯示班級學生列表"""
+    class_name = input("\n請輸入班級名稱 / Enter class name (NCUFN/NCUEC/CYCUIUBM): ").strip()
+    
+    class_data = db.get_class_by_name(class_name)
+    if not class_data:
+        print(f"❌ 找不到班級 / Class not found: {class_name}")
+        return
+    
+    class_id = class_data[0]
+    students = db.get_students_by_class_id(class_id)
+    
+    print(f"\n📋 {class_name} 學生列表 / Student List")
+    print("=" * 80)
+    print(f"{'學號 / ID':<15} {'姓名 / Name':<20} {'Discord ID':<20} {'狀態 / Status'}")
+    print("-" * 80)
+    
+    for student_id, student_name, student_number, discord_id in students:
+        status = "✅ 已綁定 / Bound" if discord_id else "⏳ 未綁定 / Not bound"
+        discord_display = discord_id if discord_id else "N/A"
+        student_num_display = student_number if student_number else "N/A"
+        print(f"{student_num_display:<15} {student_name:<20} {discord_display:<20} {status}")
+    
+    print("-" * 80)
+    print(f"總計 / Total: {len(students)} 位學生 / students")
+
+
+def show_student_details(db):
+    """顯示學生詳細資料"""
+    search_type = input("\n搜尋方式 / Search by (1=學號/Student ID, 2=Discord ID): ").strip()
+    
+    if search_type == "1":
+        student_number = input("請輸入學號 / Enter student ID: ").strip()
+        student_data = db.get_student_by_number(student_number)
+    elif search_type == "2":
+        discord_id = input("請輸入 Discord ID: ").strip()
+        student_data = db.get_student_by_discord_id(discord_id)
+    else:
+        print("❌ 無效的選擇 / Invalid choice")
+        return
+    
+    if not student_data:
+        print("❌ 找不到學生 / Student not found")
+        return
+    
+    print("\n" + "=" * 60)
+    print("👤 學生詳細資料 / Student Details")
+    print("=" * 60)
+    print(f"學生 ID / Student ID: {student_data[0]}")
+    print(f"姓名 / Name: {student_data[1]}")
+    print(f"學號 / Student Number: {student_data[2] if student_data[2] else 'N/A'}")
+    print(f"Discord ID: {student_data[3] if student_data[3] else 'N/A'}")
+    print(f"班級 ID / Class ID: {student_data[4]}")
+    print(f"班級名稱 / Class Name: {student_data[5]}")
+    
+    # 查詢作業提交記錄
+    submissions = db.get_student_submissions(student_data[3] if student_data[3] else str(student_data[0]))
+    print(f"\n📝 作業提交記錄 / Submission History: {len(submissions)} 筆 / records")
+
+
+def create_new_class(db):
+    """創建新班級"""
+    class_name = input("\n請輸入新班級名稱 / Enter new class name: ").strip()
+    
+    if not class_name:
+        print("❌ 班級名稱不能為空 / Class name cannot be empty")
+        return
+    
+    class_id = db.create_class(class_name)
+    if class_id:
+        print(f"✅ 成功創建班級 / Class created successfully: {class_name} (ID: {class_id})")
+    else:
+        print(f"❌ 創建班級失敗（可能已存在）/ Failed to create class (may already exist)")
+
+
+def show_full_statistics(db):
+    """顯示完整統計"""
+    print("\n" + "=" * 60)
+    print("📊 完整資料庫統計 / Full Database Statistics")
+    print("=" * 60)
+    
+    # 班級統計
+    classes = db.get_all_classes()
+    print(f"\n🏫 班級統計 / Class Statistics:")
+    print(f"  • 總班級數 / Total classes: {len(classes)}")
+    
+    for class_id, class_name in classes:
+        stats = db.get_class_statistics(class_id)
+        print(f"\n  📚 {class_name}:")
+        print(f"    - 學生數 / Students: {stats[0]}")
+        print(f"    - 作業提交數 / Submissions: {stats[1]}")
+        print(f"    - 平均分數 / Average score: {stats[2]:.2f if stats[2] else 0:.2f}")
+    
+    # 全域統計
+    db.cur.execute("SELECT COUNT(*) FROM Students")
+    total_students = db.cur.fetchone()[0]
+    
+    db.cur.execute("SELECT COUNT(*) FROM Students WHERE discord_id IS NOT NULL AND discord_id != ''")
+    bound_students = db.cur.fetchone()[0]
+    
+    db.cur.execute("SELECT COUNT(*) FROM AssignmentFiles")
+    total_submissions = db.cur.fetchone()[0]
+    
+    db.cur.execute("SELECT AVG(score) FROM AssignmentFiles WHERE score IS NOT NULL")
+    avg_score = db.cur.fetchone()[0]
+    
+    print(f"\n🌐 全域統計 / Global Statistics:")
+    print(f"  • 總學生數 / Total students: {total_students}")
+    print(f"  • 已綁定 Discord / Discord bound: {bound_students} ({bound_students/total_students*100:.1f}%)" if total_students > 0 else "  • 已綁定 Discord / Discord bound: 0 (0%)")
+    print(f"  • 總作業提交 / Total submissions: {total_submissions}")
+    print(f"  • 全域平均分 / Global average: {avg_score:.2f if avg_score else 0:.2f}")
+
+
+def check_database_integrity(db):
+    """檢查資料庫完整性"""
+    print("\n" + "=" * 60)
+    print("🔍 資料庫完整性檢查 / Database Integrity Check")
+    print("=" * 60)
+    
+    issues = []
+    
+    # 檢查孤立的學生（沒有對應班級）
+    db.cur.execute("""
+        SELECT COUNT(*) FROM Students 
+        WHERE class_id NOT IN (SELECT class_id FROM Classes)
+    """)
+    orphan_students = db.cur.fetchone()[0]
+    if orphan_students > 0:
+        issues.append(f"⚠️ 發現 {orphan_students} 個孤立學生記錄（班級不存在）")
+    
+    # 檢查重複的 Discord ID
+    db.cur.execute("""
+        SELECT discord_id, COUNT(*) as count 
+        FROM Students 
+        WHERE discord_id IS NOT NULL AND discord_id != ''
+        GROUP BY discord_id 
+        HAVING count > 1
+    """)
+    duplicate_discords = db.cur.fetchall()
+    if duplicate_discords:
+        issues.append(f"⚠️ 發現 {len(duplicate_discords)} 個重複的 Discord ID")
+        for discord_id, count in duplicate_discords:
+            print(f"  • Discord ID {discord_id}: {count} 個學生")
+    
+    # 檢查沒有密碼的學生
+    db.cur.execute("SELECT COUNT(*) FROM Students WHERE password IS NULL OR password = ''")
+    no_password = db.cur.fetchone()[0]
+    if no_password > 0:
+        issues.append(f"ℹ️ {no_password} 個學生沒有設定密碼")
+    
+    if not issues:
+        print("✅ 資料庫完整性檢查通過 / Database integrity check passed")
+    else:
+        print("發現以下問題 / Found following issues:\n")
+        for issue in issues:
+            print(issue)
+
+
+if __name__ == "__main__":
+    main()
