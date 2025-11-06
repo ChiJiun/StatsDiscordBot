@@ -11,21 +11,22 @@
 ## 🌟 功能特色 / Features
 
 - ✅ **自動評分系統** / Automated Grading
+
   - 英語表達評分 (English Expression)
   - 統計內容評分 (Statistical Content)
   - AI 驅動的詳細反饋 (AI-driven Detailed Feedback)
-
 - 👥 **多班級管理** / Multi-Class Management
+
   - 支援三個班級：NCUFN、NCUEC、CYCUIUBM
   - 獨立的班級頻道 (Separate Class Channels)
   - 班級統計分析 (Class Statistics)
-
 - 🔐 **身分驗證系統** / Authentication System
+
   - Discord 身分組管理 (Role Management)
   - 學號密碼登入 (Student ID & Password Login)
   - Discord 帳號綁定 (Discord Account Binding)
-
 - 📝 **作業追蹤** / Assignment Tracking
+
   - 多次提交記錄 (Multiple Submission History)
   - 詳細評分報告 (Detailed Grading Reports)
   - 進度統計 (Progress Statistics)
@@ -50,7 +51,7 @@ pip install -r requirements.txt
 
 ### 2️⃣ 配置設定 / Configuration
 
-根目錄匯入.env token.json
+根目錄匯入.env token.json credentials.json
 Csvprocessors/password_importer 準備各班資料夾
 
 ### 3️⃣ 初始化資料庫 / Initialize Database
@@ -146,17 +147,15 @@ Bot/
    !join NCUEC    # 中央大學經濟系
    !join CYCUIUBM # 中原大學國商學程
    ```
-
 2. **登入系統** (在班級頻道)
 
    ```bash
    !login 學號 密碼
    ```
-
 3. **上傳作業**
+
    - 直接拖拽 `.html` 檔案到班級頻道
    - 系統會自動評分並私訊結果
-
 4. **查看記錄**
 
 ```bash
@@ -257,11 +256,12 @@ python CsvProcessors/password_importer/password_importer.py
 ### 評分標準 / Grading Criteria
 
 - **英語表達 (English Expression)**: 40%
+
   - 文法正確性 (Grammar)
   - 詞彙使用 (Vocabulary)
   - 表達清晰度 (Clarity)
-
 - **統計內容 (Statistical Content)**: 60%
+
   - 概念理解 (Concept Understanding)
   - 計算準確性 (Calculation Accuracy)
   - 解釋完整性 (Interpretation Completeness)
