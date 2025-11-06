@@ -13,14 +13,29 @@ SCOPES = ["https://www.googleapis.com/auth/drive.file"]
 
 
 def get_oauth_creds():
-    """只讀取現有的 token.json，不啟動授權流程"""
+    """讀取現有的 token.json,並在過期時自動刷新"""
     creds = None
+    token_updated = False
+    
     if os.path.exists("token.json"):
         creds = Credentials.from_authorized_user_file("token.json", SCOPES)
         if creds and creds.expired and creds.refresh_token:
-            creds.refresh(Request())
+            try:
+                creds.refresh(Request())
+                token_updated = True
+                print("✅ Token 已自動刷新")
+            except Exception as e:
+                print(f"❌ Token 刷新失敗: {e}")
+                raise
+        
+        # 保存刷新後的 token
+        if token_updated:
+            with open("token.json", "w") as token_file:
+                token_file.write(creds.to_json())
+                print("✅ 已保存更新的 token 到 token.json")
     else:
-        raise FileNotFoundError("❌ token.json 不存在，請先運行 oauth_setup.py 獲取授權")
+        raise FileNotFoundError("❌ token.json 不存在,請先運行 oauth_setup.py 獲取授權")
+    
     return creds
 
 

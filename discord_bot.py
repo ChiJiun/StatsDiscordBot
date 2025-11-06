@@ -1389,3 +1389,13 @@ class HomeworkBot:
                 f"• 錯誤訊息 / Error Message: {e}\n"
                 f"• 請聯繫管理員 / Please contact administrator"
             )
+
+    def _get_safe_filename(self, name: str) -> str:
+        """
+        將名稱轉換為安全的檔案名稱
+        移除或替換不安全的字元
+        """
+        # 移除或替換不安全的字元
+        safe_name = name.replace(" ", "_")
+        safe_name = "".join(c for c in safe_name if c.isalnum() or c in ("_", "-"))
+        return safe_name
