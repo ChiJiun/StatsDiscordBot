@@ -8,16 +8,48 @@ Use the rubric below to evaluate the student’s written solution.
 - If a section is missing, still include it in the table.
 - If the question number is unclear or the answer is missing, please write in feedback
 
+- Evaluate **statistical reasoning and conceptual correctness**, not HTML tags or minor formatting.
+- Equivalent expressions are acceptable if they convey the same meaning.
+- Grammar or language issues should **not reduce points** unless they obscure meaning.
+- The “Feedback” should explain **why points were deducted** and how to correct mistakes.
+- The “Suggested Improved Answer” should refrain from rewriting the student’s answer entirely; focus on corrections and guidance. 
+
 ---
 
-## FRQ Question
-A company collected data on the **Sales-to-Marketing (S-M) ratios** of firms in **North America (n = 48)** and **Europe (n = 52)**.
+## REFERENCE MATERIALS  
+(These are for your understanding only. DO NOT include them in your output.)
+
+### Problem Statement
+Show all your work. Indicate clearly the methods you use, because you will be graded on the correctness of your methods as well as on the accuracy of your results and explanation. Answer this question in the context of the S-M Ratio.
+In a large multinational corporation, local branches each year record the sales performance of their salespeople (in millions of dollars) and the number of marketing personnel supporting them. From these records, the sales-to-marketing personnel ratio (S-M ratio) can be calculated for each branch.
+The histograms below show the S-M ratio for all branches during the 2024 fiscal year. The histogram on the left displays the ratios for the 52 branches located in Europe, while the histogram on the right displays the ratios for the 48 branches located in North America. Based on the raw data, the S-M ratio shows that Europe has a range of 7 and an interquartile range (IQR) of 1, while. North America has a range of 10 and an interquartile range (IQR) of 3. The estimated mean S-M ratio for Europe is approximately 15.28, and the estimated mean S-M ratio for North America is approximately 16.17.
 
 ### Part (a)
-Estimate the **median S-M ratio** for each region using the histogram provided.  
+Describe how you would use the histograms to estimate the median S-M ratio for each group (Europe and North America) of branches. Then use this procedure to estimate the median of the Europe group and the median of the North America group.
 
 ### Part (b)
-Compare the two distributions using **SOCS** (Shape, Outliers, Center, Spread).  
+Write a few sentences comparing the distributions of S-M ratios for branches in the two groups (Europe and North America) during the 2024 fiscal year.
+
+---
+
+### Model Solution (Instructor’s Standard Answer)
+
+**Median Position**
+Please use the following suggested answer as a reference for the feedback given to the respondent: For n (an even number) observations in an ordered list, the median is the average of the values at positions n/2 and (n/2)+1. For North America (n=48), the median falls between the 24th and 25th value in the ordered list. For Europe (n=52), the median falls between the 26th and 27th value in the ordered list.
+
+**Cumulative Frequency**
+Please use the following suggested answer as a reference for the feedback given to the respondent: From the histogram, cumulative frequencies for the two groups are shown in the table below.
+Interval      North America      Europe
+12–13        2                  4
+13–14        2+8=10             4+8=12
+14–15        2+8+12=22          4+8+8=20
+15–16        2+8+12+6=28        4+8+8+22=42
+
+**Median Interval**
+Please use the following suggested answer as a reference for the feedback given to the respondent: For North America (n=48), both the 24th and 25th values fall in the interval 15–16. For Europe (n=52), both the 26th and 27 values fall in the interval 15–16.
+
+**Conclusion**
+Please use the following suggested answer as a reference for the feedback given to the respondent: Thus, the median S-M ratio for both groups (North America and Europe) is at least 15 sales personnel per marketing personnel and at most 16 sales personnel per marketing personnel.
 
 ---
 
