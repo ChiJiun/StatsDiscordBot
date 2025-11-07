@@ -32,9 +32,9 @@ class PasswordImporter:
 
     def parse_txt_files_in_folder(self, folder_path):
         """
-        遞迴解析資料夾中的所有 txt 檔案（包括子資料夾）
-        檔名格式：學號_姓名.txt
-        檔案內容：密碼
+        遞迴解析資料夾中的所有 txt 檔案(包括子資料夾)
+        檔名格式:學號_姓名.txt
+        檔案內容:密碼
 
         Args:
             folder_path: 資料夾路徑
@@ -49,25 +49,25 @@ class PasswordImporter:
                 print(f"❌ 找不到資料夾: {folder_path}")
                 return {}
 
-            # 遞迴列出所有 .txt 檔案（包括子資料夾）
+            # 遞迴列出所有 .txt 檔案(包括子資料夾)
             txt_files = list(folder_path.rglob("*.txt"))
 
             if not txt_files:
-                print(f"⚠️ 資料夾中沒有找到任何 .txt 檔案（包括子資料夾）: {folder_path}")
+                print(f"⚠️ 資料夾中沒有找到任何 .txt 檔案(包括子資料夾): {folder_path}")
                 return {}
 
-            print(f"📁 找到 {len(txt_files)} 個 txt 檔案（包括子資料夾）")
+            print(f"📁 找到 {len(txt_files)} 個 txt 檔案(包括子資料夾)")
 
             for txt_file in txt_files:
                 try:
                     # 顯示相對路徑
                     relative_path = txt_file.relative_to(folder_path)
 
-                    # 解析檔名：學號_姓名.txt
+                    # 解析檔名:學號_姓名.txt
                     filename = txt_file.stem  # 去掉 .txt 副檔名
 
                     if "_" not in filename:
-                        print(f"  ⚠️ 檔名格式錯誤（缺少底線）: {relative_path}")
+                        print(f"  ⚠️ 檔名格式錯誤(缺少底線): {relative_path}")
                         continue
 
                     parts = filename.split("_", 1)  # 只分割第一個底線
@@ -78,8 +78,8 @@ class PasswordImporter:
                     student_id = parts[0].strip()
                     student_name = parts[1].strip()
 
-                    # 讀取檔案內容（密碼）
-                    with open(txt_file, "r", encoding="utf-8") as f:
+                    # 🔥 修改這裡:使用 utf-8-sig 自動移除 BOM
+                    with open(txt_file, "r", encoding="utf-8-sig") as f:
                         password = f.read().strip()
 
                     if not password:
@@ -91,7 +91,7 @@ class PasswordImporter:
                         print(f"  ⚠️ 重複的學號 {student_id}:")
                         print(f"     已存在: {student_data[student_id]}")
                         print(f"     新檔案: {relative_path} - {student_name} - {password}")
-                        print(f"     將使用新檔案的資料")
+                        print(f"     將覆寫為新檔案的資料")
 
                     student_data[student_id] = (student_name, password)
                     print(f"  ✓ {relative_path}: {student_id} - {student_name} - {password}")
@@ -106,7 +106,6 @@ class PasswordImporter:
         except Exception as e:
             print(f"❌ 讀取資料夾時發生錯誤: {e}")
             import traceback
-
             traceback.print_exc()
             return {}
 

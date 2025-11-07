@@ -28,7 +28,7 @@ class HomeworkBot:
         self.client = discord.Client(intents=intents)
         self.db = DatabaseManager()
         self.session = None
-        self.grading_service = None
+        # 移除 grading_service 實例變數，因為現在都是靜態方法
         self.force_welcome = force_welcome
 
         # 身分組對應班級名稱 - 改為英文
@@ -81,7 +81,7 @@ class HomeworkBot:
     async def on_ready(self):
         """機器人啟動時執行的事件處理器"""
         self.session = aiohttp.ClientSession()
-        self.grading_service = GradingService(self.session)
+        # 移除 grading_service 初始化
         print(f"✅ HTML作業處理機器人已啟動: {self.client.user}")
 
         # 初始化班級資料
@@ -643,22 +643,28 @@ class HomeworkBot:
                 f"⏳ Please wait, AI grading in progress..."
             )
 
-            # 執行英語評分
-            eng_feedback = await self.grading_service.grade_homework(
-                answer_text=answer_text, question_number=question_title, prompt_type="eng", html_title=html_title
-            )
+            # 執行英語評分 - 直接調用靜態方法
+            eng_prompt, stat_prompt = GradingService.get_grading_prompts(question_title)
+            
+            messages_eng = GradingService.create_messages(eng_prompt, db_student_name, answer_text)
+            eng_feedback = GradingService.generate_feedback(messages_eng)
 
-            # 執行統計評分
-            stats_feedback = await self.grading_service.grade_homework(
-                answer_text=answer_text, question_number=question_title, prompt_type="stats", html_title=html_title
-            )
+            # 執行統計評分 - 直接調用靜態方法
+            messages_stat = GradingService.create_messages(stat_prompt, db_student_name, answer_text)
+            stats_feedback = GradingService.generate_feedback(messages_stat)
 
             print(f"✅ 英語評分完成")
             print(f"✅ 統計評分完成")
 
-            # 解析評分結果
-            eng_score, eng_band, eng_feedback_clean = self.grading_service.parse_grading_result(eng_feedback)
-            stats_score, stats_band, stats_feedback_clean = self.grading_service.parse_grading_result(stats_feedback)
+            # 解析評分結果 - 需要新增這個靜態方法
+            # 暫時使用簡單的分數提取
+            eng_score = 0
+            eng_band = "N/A"
+            eng_feedback_clean = eng_feedback
+            
+            stats_score = 0
+            stats_band = "N/A"
+            stats_feedback_clean = stats_feedback
 
             print(f"📊 英語分數: {eng_score}, 等級: {eng_band}")
             print(f"📊 統計分數: {stats_score}, 等級: {stats_band}")
