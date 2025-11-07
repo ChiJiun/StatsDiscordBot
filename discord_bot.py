@@ -1,6 +1,7 @@
 import os
 import discord
 import aiohttp
+import asyncio
 from config import (
     DISCORD_TOKEN,
     UPLOADS_DIR,
@@ -104,7 +105,7 @@ class HomeworkBot:
         """發送歡迎訊息到歡迎頻道和所有班級頻道"""
         # 創建歡迎訊息嵌入
         embed = discord.Embed(
-            title="🎓 歡迎使用統計學智慧評分系統\nWelcome to Statistics AI Grading System",
+            title="🎓 歡迎使用統計學AI評分系統\nWelcome to Statistics AI Grading System",
             description="✨ **歡迎同學們！請仔細閱讀以下重要提醒**\n"
             "✨ **Welcome! Please read the following important reminders carefully**\n\n"
             "📍 **開始使用前，請先將機器人加入好友**\n"
@@ -122,8 +123,6 @@ class HomeworkBot:
             name="📚 系統功能說明 / System Features",
             value="• `!help` - 查看完整指令說明 / View complete instructions\n"
             "• `!login 學號 密碼` - 登入系統 / Login to system\n"
-            "• `!my-roles` - 查看我的學校身分 / View my school identity\n"
-            "• `!class-stats` - 查看班級學習統計 / View class statistics\n"
             "• **直接上傳作業 HTML 檔案** - 系統會自動評分\n"
             "• **Upload HTML homework file** - Auto grading",
             inline=False,
@@ -163,7 +162,7 @@ class HomeworkBot:
                             and message.embeds
                             and len(message.embeds) > 0
                             and (
-                                "歡迎使用統計學智慧評分系統" in message.embeds[0].title 
+                                "歡迎使用統計學AI評分系統" in message.embeds[0].title 
                                 or "歡迎來到 HTML 作業評分系統" in message.embeds[0].title
                                 or "Welcome to Statistics AI Grading System" in message.embeds[0].title
                             )
@@ -188,7 +187,7 @@ class HomeworkBot:
                             and message.embeds
                             and len(message.embeds) > 0
                             and (
-                                "歡迎使用統計學智慧評分系統" in message.embeds[0].title 
+                                "歡迎使用統計學AI評分系統" in message.embeds[0].title 
                                 or "歡迎來到 HTML 作業評分系統" in message.embeds[0].title
                                 or "Welcome to Statistics AI Grading System" in message.embeds[0].title
                             )
@@ -292,10 +291,8 @@ class HomeworkBot:
                 f"📍 **Please use features in the correct channel**{channel_info}\n\n"
                 "🔧 **您可以使用的功能 / Available features：**\n"
                 "• `!help` - 查看詳細使用指南 / View detailed guide\n"
-                "• `!my-roles` - 查看我的學校身分 / View my school identity\n"
-                "• `!class-stats` - 查看班級學習統計 / View class statistics\n"
                 "• `!my-submissions` - 查看我的作業記錄 / View my submission history\n"
-                "• 📤 **上傳 HTML 作業檔案進行智慧評分 / Upload HTML file for AI grading**"
+                "• 📤 **上傳 HTML 作業檔案進行AI評分 / Upload HTML file for AI grading**"
             )
             try:
                 await message.delete()
@@ -308,7 +305,7 @@ class HomeworkBot:
             is_admin = message.author.guild_permissions.administrator
 
             help_text = (
-                "📖 **統計學智慧評分系統使用指南**\n"
+                "📖 **統計學AI評分系統使用指南**\n"
                 "📖 **Statistics AI Grading System User Guide**\n\n"
                 "🎯 **主要功能 / Main Features**:\n"
                 "1. 📤 **上傳作業檔案 / Upload Homework** - 直接拖拽 `.html` 檔案到聊天室，系統會自動評分\n"
@@ -318,19 +315,13 @@ class HomeworkBot:
                 "   Choose your school identity (welcome channel only)\n"
                 "4. 🔑 `!login 學號 密碼` - 使用學號密碼登入系統\n"
                 "   Login with student ID and password\n"
-                "5. 👤 `!my-roles` - 查看我的學校身分資訊\n"
-                "   View my school identity info\n"
-                "6. 📊 `!class-stats` - 查看班級學習統計資料\n"
-                "   View class learning statistics\n"
-                "7. 📝 `!my-submissions` - 查看我的作業提交記錄\n"
+                "5. 📝 `!my-submissions` - 查看我的作業提交記錄\n"
                 "   View my submission history\n"
             )
 
             if is_admin:
                 help_text += (
                     "\n👑 **管理員專用功能 / Admin Functions**:\n"
-                    "• `!class-list` - 查看所有班級資料 / View all classes\n"
-                    "• `!student-list 班級名稱` - 查看指定班級學生清單 / View student list\n"
                     "• `!update-welcome` - 更新歡迎訊息 / Update welcome message\n"
                 )
 
@@ -354,28 +345,6 @@ class HomeworkBot:
         # 處理密碼登入指令
         if message.content.lower().startswith("!login"):
             await self._handle_password_login(message)
-            return
-
-        # 管理員專用指令
-        if message.author.guild_permissions.administrator:
-            # 查看所有班級
-            if message.content.lower() == "!class-list":
-                await self._show_class_list(message)
-                return
-
-            # 查看學生清單
-            if message.content.lower().startswith("!student-list"):
-                await self._show_student_list(message)
-                return
-
-        # 處理查看身分組指令
-        if message.content.lower() == "!my-roles":
-            await self._show_user_roles(message)
-            return
-
-        # 處理班級統計指令
-        if message.content.lower() == "!class-stats":
-            await self._show_class_stats(message)
             return
 
         # 處理我的提交記錄指令
@@ -403,7 +372,7 @@ class HomeworkBot:
                                 and old_message.embeds
                                 and len(old_message.embeds) > 0
                                 and (
-                                    "歡迎使用統計學智慧評分系統" in old_message.embeds[0].title
+                                    "歡迎使用統計學AI評分系統" in old_message.embeds[0].title
                                     or "歡迎來到 HTML 作業評分系統" in old_message.embeds[0].title
                                     or "Welcome to Statistics AI Grading System" in old_message.embeds[0].title
                                 )
@@ -573,6 +542,16 @@ class HomeworkBot:
             print(f"🆔 學號: {student_id_from_html}")
             print(f"📄 答案內容長度: {len(answer_text)} 字元")
 
+            # 使用 HTML 標題作為題目標題,如果沒有則使用檔案名稱
+            question_title = html_title if html_title else file.filename
+            print(f"📝 題目標題: {question_title}")
+
+            # ✅ 統一使用 Discord ID (user_id) 來查詢和儲存
+            # 因為 Discord ID 是唯一且不變的，比學號更可靠
+            max_attempt = self.db.get_max_attempt(user_id, question_title)
+            attempt_number = max_attempt + 1
+            print(f"🔄 嘗試次數: {attempt_number} (Discord ID: {user_id}, 題目: {question_title})")
+
             # 檢查是否有答案內容
             if not answer_text or answer_text.strip() == "":
                 await message.author.send(
@@ -585,15 +564,12 @@ class HomeworkBot:
                 os.remove(temp_path)
                 return
 
-            # 使用 HTML 標題作為題目標題，如果沒有則使用檔案名稱
-            question_title = html_title if html_title else file.filename
-            print(f"📝 題目標題: {question_title}")
+            # 建立安全的檔名
+            safe_class_name = self._get_safe_filename(class_name)
 
-            # 獲取下一次嘗試編號（使用題目標題）
-            max_attempt = self.db.get_max_attempt(user_id, question_title)
-            attempt_number = max_attempt + 1
-
-            print(f"🔄 嘗試次數: {attempt_number}")
+            # 使用學號作為資料夾名稱，如果沒有學號則使用 student_id
+            folder_name = student_number if student_number else str(db_student_id)
+            safe_folder_name = self._get_safe_filename(folder_name)
 
             # 設定上傳目錄
             uploads_class_dir = os.path.join(UPLOADS_DIR, safe_class_name)
@@ -616,7 +592,7 @@ class HomeworkBot:
                 class_name,
                 student_number or student_id_from_html,
                 db_student_name,
-                question_title,
+                html_title,
                 attempt_number,
             )
 
@@ -637,133 +613,213 @@ class HomeworkBot:
             # 發送處理中訊息
             processing_msg = await message.author.send(
                 f"🔄 **正在處理您的作業 / Processing Your Homework**\n\n"
-                f"📝 題目 / Question：{question_title}\n"
+                f"📝 題目 / Question：{html_title}\n"
                 f"🔢 第 {attempt_number} 次提交 / Submission #{attempt_number}\n"
-                f"⏳ 請稍候，系統正在進行智慧評分...\n"
+                f"⏳ 請稍候，系統正在進行AI評分...\n"
                 f"⏳ Please wait, AI grading in progress..."
             )
 
-            # 執行英語評分 - 直接調用靜態方法
-            eng_prompt, stat_prompt = GradingService.get_grading_prompts(question_title)
-            
-            messages_eng = GradingService.create_messages(eng_prompt, db_student_name, answer_text)
-            eng_feedback = GradingService.generate_feedback(messages_eng)
+            try:
+                # 獲取評分提示詞
+                eng_prompt, stat_prompt = GradingService.get_grading_prompts(html_title)
+                
+                # 更新進度
+                await processing_msg.edit(content=
+                    f"🔄 **正在處理您的作業 / Processing Your Homework**\n\n"
+                    f"📝 題目 / Question：{html_title}\n"
+                    f"🔢 第 {attempt_number} 次提交 / Submission #{attempt_number}\n"
+                    f"📖 正在進行英語評分...\n"
+                    f"📖 English grading in progress..."
+                )
+                
+                # 執行英語評分 - 現在是非同步的！
+                messages_eng = GradingService.create_messages(eng_prompt, db_student_name, answer_text)
+                eng_feedback = await asyncio.wait_for(
+                    GradingService.generate_feedback(messages_eng),
+                    timeout=60.0
+                )
 
-            # 執行統計評分 - 直接調用靜態方法
-            messages_stat = GradingService.create_messages(stat_prompt, db_student_name, answer_text)
-            stats_feedback = GradingService.generate_feedback(messages_stat)
+                print(f"✅ 英語評分完成")
+                
+                # 更新進度
+                await processing_msg.edit(content=
+                    f"🔄 **正在處理您的作業 / Processing Your Homework**\n\n"
+                    f"📝 題目 / Question：{html_title}\n"
+                    f"🔢 第 {attempt_number} 次提交 / Submission #{attempt_number}\n"
+                    f"✅ 英語評分完成\n"
+                    f"📊 正在進行統計評分...\n"
+                    f"📊 Statistics grading in progress..."
+                )
 
-            print(f"✅ 英語評分完成")
-            print(f"✅ 統計評分完成")
+                # 執行統計評分 - 現在是非同步的！
+                messages_stat = GradingService.create_messages(stat_prompt, db_student_name, answer_text)
+                stats_feedback = await asyncio.wait_for(
+                    GradingService.generate_feedback(messages_stat),
+                    timeout=60.0  # 60 秒超時
+                )
 
-            # 解析評分結果 - 需要新增這個靜態方法
-            # 暫時使用簡單的分數提取
-            eng_score = 0
-            eng_band = "N/A"
-            eng_feedback_clean = eng_feedback
-            
-            stats_score = 0
-            stats_band = "N/A"
-            stats_feedback_clean = stats_feedback
+                print(f"✅ 統計評分完成")
+                
+                # 更新進度
+                await processing_msg.edit(content=
+                    f"🔄 **正在處理您的作業 / Processing Your Homework**\n\n"
+                    f"📝 題目 / Question：{html_title}\n"
+                    f"🔢 第 {attempt_number} 次提交 / Submission #{attempt_number}\n"
+                    f"✅ 英語評分完成\n"
+                    f"✅ 統計評分完成\n"
+                    f"📄 正在生成報告...\n"
+                    f"📄 Generating report..."
+                )
 
-            print(f"📊 英語分數: {eng_score}, 等級: {eng_band}")
-            print(f"📊 統計分數: {stats_score}, 等級: {stats_band}")
-
-            # 生成並保存報告
-            report_path, report_filename, report_drive_id = await FileHandler.generate_and_save_report(
-                db_student_name=db_student_name,
-                student_number=student_number,
-                student_id_from_html=student_id_from_html,
-                question_title=question_title,
-                attempt_number=attempt_number,
-                answer_text=answer_text,
-                eng_score=eng_score,
-                eng_band=eng_band,
-                eng_feedback_clean=eng_feedback_clean,
-                stats_score=stats_score,
-                stats_band=stats_band,
-                stats_feedback_clean=stats_feedback_clean,
-                reports_student_dir=reports_student_dir,
-                class_name=class_name,
-                student_id=student_number or student_id_from_html,
-            )
-
-            if not report_path:
-                await message.author.send("❌ 生成報告失敗")
+            except asyncio.TimeoutError:
+                await processing_msg.edit(content="⏱️ AI評分超時，請稍後再試。\n⏱️ AI grading timeout, please try again later.")
+                print(f"❌ AI評分超時: {html_title}")
+                return
+            except Exception as e:
+                await processing_msg.edit(content=f"❌ AI評分失敗: {e}\n❌ AI grading failed: {e}")
+                print(f"❌ AI評分錯誤: {e}")
+                import traceback
+                traceback.print_exc()
                 return
 
-            # 記錄到資料庫（保留在 discord_bot.py 中）
-            overall_score = (eng_score + stats_score) / 2
-            combined_feedback = f"英語評分:\n{eng_feedback_clean}\n\n統計評分:\n{stats_feedback_clean}"
+            # 解析評分結果
+            eng_feedback_clean = eng_feedback
+            stats_feedback_clean = stats_feedback
 
-            success = self.db.insert_submission(
-                user_id=user_id,
-                student_name=db_student_name,
-                student_id=student_number or student_id_from_html,
-                question_number=question_title,
-                attempt_number=attempt_number,
-                html_path=report_path,
-                score=overall_score,
-                feedback=combined_feedback,
+            # 生成並保存報告（添加超時控制）
+            try:
+                report_path, report_filename, report_drive_id = await asyncio.wait_for(
+                    FileHandler.generate_and_save_report(
+                        db_student_name=db_student_name,
+                        student_number=student_number,
+                        student_id_from_html=student_id_from_html,
+                        question_title=html_title,
+                        attempt_number=attempt_number,
+                        answer_text=answer_text,
+                        eng_feedback_clean=eng_feedback_clean,
+                        stats_feedback_clean=stats_feedback_clean,
+                        reports_student_dir=reports_student_dir,
+                        class_name=class_name,
+                        student_id=student_number or student_id_from_html,
+                    ),
+                    timeout=60.0
+                )
+            except asyncio.TimeoutError:
+                await processing_msg.edit(content="⏱️ 報告生成超時，請聯繫管理員。\n⏱️ Report generation timeout, please contact admin.")
+                print(f"❌ 報告生成超時: {html_title}")
+                return
+
+            if not report_path:
+                await processing_msg.edit(content="❌ 生成報告失敗\n❌ Report generation failed")
+                return
+
+            # ========== 新增：將提交記錄寫入資料庫 ==========
+            print(f"💾 正在將提交記錄寫入資料庫...")
+            try:
+                # ✅ 修正參數名稱，與 database.py 的方法定義一致
+                db_insert_success = self.db.insert_submission(
+                    discord_id=user_id,  # ✅ Discord ID（查詢鍵）
+                    student_name=db_student_name,
+                    student_number=student_number or student_id_from_html,  # ✅ 學號（僅供顯示）
+                    question_title=html_title,
+                    attempt_number=attempt_number,
+                    html_path=report_path
+                )
+                
+                if db_insert_success:
+                    print(f"✅ 提交記錄已成功寫入資料庫")
+                    print(f"   - Discord ID: {user_id}")
+                    print(f"   - 學號: {student_number or student_id_from_html}")
+                    print(f"   - 題目: {html_title}")
+                    print(f"   - 嘗試次數: {attempt_number}")
+                else:
+                    print(f"⚠️ 提交記錄寫入資料庫失敗（方法返回 False）")
+                    # 即使資料庫寫入失敗，仍繼續發送報告給用戶
+                    
+            except TypeError as type_error:
+                print(f"❌ 參數類型錯誤: {type_error}")
+                import traceback
+                traceback.print_exc()
+                await processing_msg.edit(
+                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生參數錯誤\n"
+                            f"⚠️ Report generated, but database write parameter error occurred\n"
+                            f"錯誤訊息 / Error: {type_error}\n\n"
+                            f"請聯繫管理員檢查系統設定"
+                )
+            except Exception as db_error:
+                print(f"❌ 資料庫寫入錯誤: {db_error}")
+                import traceback
+                traceback.print_exc()
+                # 即使資料庫寫入失敗，仍繼續發送報告給用戶
+                await processing_msg.edit(
+                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生錯誤\n"
+                            f"⚠️ Report generated, but database write error occurred\n"
+                            f"錯誤訊息 / Error: {db_error}"
+                )
+            
+            # ========== 結束資料庫寫入 ==========
+
+            # 更新進度訊息
+            await processing_msg.edit(content=
+                f"✅ **作業處理完成 / Homework Processing Complete**\n\n"
+                f"📝 題目 / Question：{html_title}\n"
+                f"🔢 第 {attempt_number} 次提交 / Submission #{attempt_number}\n"
+                f"✅ 英語評分完成\n"
+                f"✅ 統計評分完成\n"
+                f"✅ 報告生成完成\n"
+                f"💾 資料已記錄\n"
+                f"📤 正在發送結果..."
             )
-
-            if success:
-                print(f"✅ 已記錄到資料庫")
-            else:
-                print(f"⚠️ 記錄到資料庫失敗，但評分已完成")
-
-            # 更新處理中訊息
-            await processing_msg.edit(content="✨ **評分完成！/ Grading Complete!** 正在準備您的詳細報告...\n" "Preparing your detailed report...")
 
             # 發送結果
             result_text = (
                 f"🎉 **作業評分完成 / Homework Grading Complete**\n\n"
                 f"👤 **學生 / Student**：{db_student_name}\n"
-                f"📝 **題目 / Question**：{question_title}\n"
+                f"🆔 **學號 / Student ID**：{student_number or student_id_from_html}\n"
+                f"📝 **題目 / Question**：{html_title}\n"
                 f"🔢 **提交次數 / Submission**：第 {attempt_number} 次 / #{attempt_number}\n\n"
-                f"📊 **評分結果 / Grading Results**：\n"
-                f"• 🔤 英語表達 / English：{eng_score} 分 / points (等級 / Level: {eng_band})\n"
-                f"• 📈 統計內容 / Statistics：{stats_score} 分 / points (等級 / Level: {stats_band})\n"
-                f"• 🎯 總體分數 / Overall：{overall_score:.1f} 分 / points\n"
+                f"📊 您可以使用 `!my-submissions` 查看所有作業記錄\n"
+                f"📊 Use `!my-submissions` to view all submission records"
             )
 
             await message.author.send(result_text)
 
             # 發送報告檔案
-            with open(report_path, "rb") as f:
+            try:
+                with open(report_path, "rb") as f:
+                    await message.author.send(
+                        f"📄 **詳細評分報告 / Detailed Grading Report**\n"
+                        f"完整的評分分析和改進建議請參考附件\n"
+                        f"Please refer to the attachment for complete grading analysis and improvement suggestions",
+                        file=discord.File(f, report_filename),
+                    )
+                print(f"✅ 已發送結果給用戶")
+            except Exception as send_error:
+                print(f"❌ 發送報告檔案失敗: {send_error}")
                 await message.author.send(
-                    f"📄 **詳細評分報告 / Detailed Grading Report**\n"
-                    f"完整的評分分析和改進建議請參考附件\n"
-                    f"Please refer to the attachment for complete grading analysis and improvement suggestions",
-                    file=discord.File(f, report_filename),
+                    f"⚠️ 報告已生成但發送失敗\n"
+                    f"⚠️ Report generated but sending failed\n"
+                    f"檔案位置 / File location: {report_path}"
                 )
 
-            print(f"✅ 已發送結果給用戶")
-
-        except Exception as e:
-            print(f"❌ 處理檔案時發生錯誤: {e}")
-            import traceback
-
-            traceback.print_exc()
-
-            await message.author.send(f"❌ 處理檔案時發生錯誤 / Error processing file: {e}")
+            # 刪除處理中訊息
             try:
-                if "save_path" in locals() and os.path.exists(save_path):
-                    os.remove(save_path)
+                await processing_msg.delete()
             except:
                 pass
 
         except Exception as e:
-            print(f"❌ 處理 HTML 檔案時發生錯誤: {e}")
+            print(f"❌ 處理檔案時發生錯誤: {e}")
             import traceback
-
             traceback.print_exc()
-            await message.author.send(f"❌ 處理 HTML 檔案時發生錯誤: {e}")
 
-            # 如果在檔案保存前出現錯誤，仍嘗試刪除訊息
+            await message.author.send(f"❌ 處理檔案時發生錯誤 / Error processing file: {e}")
+            
+            # 清理：如果已保存檔案但處理失敗，嘗試刪除
             try:
-                await message.delete()
-            except (discord.Forbidden, discord.NotFound):
+                if "save_path" in locals() and os.path.exists(save_path):
+                    os.remove(save_path)
+            except:
                 pass
 
     async def on_close(self):
@@ -1247,7 +1303,7 @@ class HomeworkBot:
                         print(f"🔍 發現 Discord ID 衝突: {conflicting_student}")
                         await user.send(
                             f"❌ Discord ID 綁定衝突 / Discord ID binding conflict\n\n"
-                            f"📋 您的 Discord 帳號已綁定到 / Your Discord account is bound to：\n"
+                            f"📋 您的 Discord 帱號已綁定到 / Your Discord account is bound to：\n"
                             f"• 學號 / Student ID：{conflict_student_number}\n"
                             f"• 班級 / Class：{conflict_class_name}\n\n"
                             f"🔄 嘗試綁定的帳號 / Attempted binding account：\n"
@@ -1405,3 +1461,154 @@ class HomeworkBot:
         safe_name = name.replace(" ", "_")
         safe_name = "".join(c for c in safe_name if c.isalnum() or c in ("_", "-"))
         return safe_name
+
+    async def _show_my_submissions(self, message):
+        """顯示用戶的作業提交記錄"""
+        try:
+            user_id = str(message.author.id)
+            
+            # 獲取學生資料
+            student_data = self.db.get_student_by_discord_id(user_id)
+            if not student_data:
+                await message.author.send(
+                    "❌ 找不到您的學生資料 / Cannot find your student data\n\n"
+                    "請先使用以下任一方式登入：\n"
+                    "Please login first using one of the following methods:\n\n"
+                    "• `!join 學校代碼` - 選擇學校身分\n"
+                    "• `!login 學號 密碼` - 使用學號密碼登入"
+                )
+                try:
+                    await message.delete()
+                except:
+                    pass
+                return
+
+            # 解析學生資料
+            if len(student_data) >= 6:
+                db_student_id, db_student_name, student_number, discord_id, class_id, class_name = student_data
+            else:
+                await message.author.send("❌ 學生資料格式錯誤")
+                try:
+                    await message.delete()
+                except:
+                    pass
+                return
+
+            # 獲取提交記錄（使用 Discord ID 查詢）
+            submissions = self.db.get_student_submissions(user_id)
+            
+            if not submissions:
+                await message.author.send(
+                    f"📋 **作業提交記錄 / Submission History**\n\n"
+                    f"👤 學生 / Student：{db_student_name}\n"
+                    f"🆔 學號 / Student ID：{student_number}\n"
+                    f"🏫 班級 / Class：{class_name}\n\n"
+                    f"📝 您還沒有提交過任何作業\n"
+                    f"📝 You haven't submitted any homework yet\n\n"
+                    f"💡 請上傳 HTML 作業檔案到您的班級頻道進行評分\n"
+                    f"💡 Please upload HTML homework file to your class channel for grading"
+                )
+
+            else:
+                # 按題目分組統計
+                from collections import defaultdict
+                questions_dict = defaultdict(list)
+                
+                for submission in submissions:
+                    if len(submission) >= 5:
+                        file_id, upload_time, file_path, question_title, attempt_number = submission
+                        questions_dict[question_title].append({
+                            'attempt': attempt_number,
+                            'time': upload_time,
+                            'file_id': file_id
+                        })
+                
+                # 建立回覆訊息
+                response = (
+                    f"📋 **作業提交記錄 / Submission History**\n\n"
+                    f"👤 學生 / Student：{db_student_name}\n"
+                    f"🆔 學號 / Student ID：{student_number}\n"
+                    f"🏫 班級 / Class：{class_name}\n"
+                    f"📊 總提交次數 / Total submissions：{len(submissions)} 次\n"
+                    f"📝 題目數量 / Questions：{len(questions_dict)} 題\n\n"
+                )
+                
+                # 列出每個題目的提交記錄
+                for idx, (question_title, attempts) in enumerate(sorted(questions_dict.items()), 1):
+                    response += f"**{idx}. {question_title}**\n"
+                    response += f"   • 提交次數 / Submissions：{len(attempts)} 次\n"
+                    
+                    # 列出最近3次提交
+                    sorted_attempts = sorted(attempts, key=lambda x: x['attempt'], reverse=True)[:3]
+                    for attempt_info in sorted_attempts:
+                        response += f"   • 第 {attempt_info['attempt']} 次 - {attempt_info['time'][:19]}\n"
+                    
+                    if len(attempts) > 3:
+                        response += f"   • ... 及其他 {len(attempts) - 3} 次提交\n"
+                    response += "\n"
+                
+                await message.author.send(response)
+            
+            try:
+                await message.delete()
+            except:
+                pass
+                
+        except Exception as e:
+            await message.author.send(f"❌ 查詢提交記錄時發生錯誤 / Error querying submissions：{e}")
+            print(f"❌ _show_my_submissions 錯誤: {e}")
+            import traceback
+            traceback.print_exc()
+
+    async def _show_user_roles(self, message):
+        """顯示用戶的身分組資訊"""
+        try:
+            user_id = str(message.author.id)
+            member = message.guild.get_member(message.author.id)
+            
+            # 獲取學生資料
+            student_data = self.db.get_student_by_discord_id(user_id)
+            
+            if not student_data:
+                await message.author.send(
+                    "❌ 找不到您的學生資料 / Cannot find your student data\n\n"
+                    "請先使用以下任一方式登入：\n"
+                    "Please login first using one of the following methods:\n\n"
+                    "• `!join 學校代碼` - 選擇學校身分\n"
+                    "• `!login 學號 密碼` - 使用學號密碼登入"
+                )
+            else:
+                # 解析學生資料
+                if len(student_data) >= 6:
+                    db_student_id, db_student_name, student_number, discord_id, class_id, class_name = student_data
+                    
+                    # 獲取 Discord 身分組
+                    user_roles = [role.name for role in member.roles if role.name != "@everyone"]
+                    
+                    response = (
+                        f"👤 **您的身分資訊 / Your Identity Info**\n\n"
+                        f"📛 姓名 / Name：{db_student_name}\n"
+                        f"🆔 學號 / Student ID：{student_number}\n"
+                        f"🏫 班級 / Class：{class_name}\n"
+                        f"🔗 Discord ID：{discord_id}\n\n"
+                        f"🎭 **Discord 身分組 / Discord Roles**：\n"
+                    )
+                    
+                    if user_roles:
+                        for role in user_roles:
+                            response += f"• {role}\n"
+                    else:
+                        response += "• 無特殊身分組 / No special roles\n"
+                    
+                    await message.author.send(response)
+                else:
+                    await message.author.send("❌ 學生資料格式錯誤")
+            
+            try:
+                await message.delete()
+            except:
+                pass
+                
+        except Exception as e:
+            await message.author.send(f"❌ 查詢身分資訊時發生錯誤 / Error querying identity：{e}")
+            print(f"❌ _show_user_roles 錯誤: {e}")

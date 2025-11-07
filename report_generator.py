@@ -8,11 +8,7 @@ def generate_html_report(
     question_number,
     attempt,
     answer_text,
-    eng_score,
-    eng_band,
     eng_feedback,
-    stats_score,
-    stats_band,
     stats_feedback,
 ):
     """
@@ -105,7 +101,6 @@ def generate_html_report(
 <div class="page-break"></div>
 <h2 class="section">三、Statistical Feedback</h2>
 <body><div class="report-container">{stats_feedback_html}</div></body>
-<footer><small>第 <span class="pageNumber"></span> 頁</small></footer>
 </div></body></html>"""
 
     return html_template

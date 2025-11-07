@@ -42,22 +42,36 @@ CYCUIUBM_ROLE_ID = int(os.getenv("CYCUIUBM_ROLE_ID", 0))  # 可選：CYCUIUBM �
 DB_PATH = "homework.db"
 
 # 目錄設定
-PROMPTS_DIR = "."  # 提示檔案存放目錄
-
-# Grading 系統設定
-ENG_PROMPT_FILE = os.path.join(PROMPTS_DIR, "prompts/Eng_prompt.txt")
-STATS_PROMPT_FILE = os.path.join(PROMPTS_DIR, "prompts/Stats_prompt.txt")  # 預設統計 prompt
+PROMPTS_DIR = "prompts"  # 提示檔案存放目錄
 
 # 預設 Prompt 檔案路徑配置
-DEFAULT_PROMPTS = {"eng": ENG_PROMPT_FILE, "stats": STATS_PROMPT_FILE}
+DEFAULT_PROMPTS = {
+    "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+    "statistics": os.path.join(PROMPTS_DIR, "Stats_prompt.txt")
+}
 
-# 特定 Prompt 檔案路徑配置
+# 特定題目的 Prompt 檔案路徑配置（必須是字典格式，包含 english 和 statistics）
 SPECIFIC_PROMPTS = {
-    "Age and Viewing Habits 考卷": os.path.join(PROMPTS_DIR, "prompts/Stats_prompt.txt"),
-    "Typing Practice": os.path.join(PROMPTS_DIR, "prompts/Typing Practice.txt"),
-    "SOCS_S-M ratio": os.path.join(PROMPTS_DIR, "prompts/S-M ratio_Stats_prompt.txt"),
-    "SOCS_S-M ratio-2": os.path.join(PROMPTS_DIR, "prompts/S-M ratio_Stats_prompt.txt"),
-    "Four-Step_Simulation of random guessing": os.path.join(PROMPTS_DIR, "prompts/Four-Step_Simulation_Stats_prompt.txt"),
+    "Age and Viewing Habits 考卷": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Stats_prompt.txt")
+    },
+    "Typing Practice": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Typing Practice.txt")
+    },
+    "SOCS_S-M ratio": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio_Stats_prompt.txt")
+    },
+    "SOCS_S-M ratio-2": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio_Stats_prompt.txt")
+    },
+    "Four-Step_Simulation of random guessing": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Simulation_Stats_prompt.txt")
+    }
 }
 
 

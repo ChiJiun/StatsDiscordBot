@@ -5,10 +5,15 @@ import os
 import datetime
 import docx
 import markdown
+import asyncio
+from concurrent.futures import ThreadPoolExecutor
 from config import OPENAI_API_KEY, MODEL, DEFAULT_PROMPTS, SPECIFIC_PROMPTS
 
 
 class GradingService:
+    # 添加線程池執行器（類別層級）
+    _executor = ThreadPoolExecutor(max_workers=2)
+    
     @staticmethod
     def get_grading_prompts(question_title=None):
         """
@@ -20,28 +25,34 @@ class GradingService:
         """
         # 如果沒有提供題目標題，使用預設 prompt
         if not question_title:
-            eng_prompt_file = DEFAULT_PROMPTS.get('eng', '')
-            stat_prompt_file = DEFAULT_PROMPTS.get('stats', '')
+            eng_prompt_file = DEFAULT_PROMPTS["english"]
+            stat_prompt_file = DEFAULT_PROMPTS["statistics"]
         else:
-            # 根據題目標題查找對應的 prompt 檔案
-            stat_prompt_file = SPECIFIC_PROMPTS.get(question_title)
-            
-            if not stat_prompt_file:
-                # 如果找不到特定 prompt，使用預設
-                print(f"⚠️ 題目 '{question_title}' 沒有對應的 prompt，使用預設 Stats prompt")
-                stat_prompt_file = DEFAULT_PROMPTS.get('stats', '')
+            # 檢查是否有該題目的特定 prompt
+            if question_title in SPECIFIC_PROMPTS:
+                prompt_config = SPECIFIC_PROMPTS[question_title]
+                
+                # 確保 prompt_config 是字典
+                if isinstance(prompt_config, dict):
+                    eng_prompt_file = prompt_config.get("english", DEFAULT_PROMPTS["english"])
+                    stat_prompt_file = prompt_config.get("statistics", DEFAULT_PROMPTS["statistics"])
+                else:
+                    # 如果不是字典，使用預設值
+                    print(f"⚠️ 警告：題目 '{question_title}' 的 prompt 配置格式錯誤，使用預設 prompt")
+                    eng_prompt_file = DEFAULT_PROMPTS["english"]
+                    stat_prompt_file = DEFAULT_PROMPTS["statistics"]
             else:
-                print(f"✅ 使用題目專屬 prompt: {question_title}")
-            
-            # 英文 prompt 始終使用預設
-            eng_prompt_file = DEFAULT_PROMPTS.get('eng', '')
+                # 沒有特定 prompt，使用預設
+                print(f"ℹ️ 題目 '{question_title}' 沒有特定 prompt，使用預設 prompt")
+                eng_prompt_file = DEFAULT_PROMPTS["english"]
+                stat_prompt_file = DEFAULT_PROMPTS["statistics"]
         
         # 讀取 prompt 檔案內容
         eng_prompt = GradingService._read_prompt_file(eng_prompt_file)
         stat_prompt = GradingService._read_prompt_file(stat_prompt_file)
         
         if not eng_prompt or not stat_prompt:
-            raise RuntimeError("無法讀取 prompt 檔案，請檢查 config.py 中的檔案路徑設定。")
+            raise ValueError(f"❌ 無法讀取 prompt 檔案: eng={eng_prompt_file}, stat={stat_prompt_file}")
         
         return eng_prompt, stat_prompt
 
@@ -56,16 +67,16 @@ class GradingService:
         """
         if not file_path or not os.path.exists(file_path):
             print(f"❌ Prompt 檔案不存在: {file_path}")
-            return ""
+            return None
         
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
-                content = f.read().strip()
-                print(f"✅ 成功讀取 prompt 檔案: {file_path} ({len(content)} 字元)")
+                content = f.read()
+                print(f"✅ 成功讀取 prompt 檔案: {file_path}")
                 return content
         except Exception as e:
-            print(f"❌ 讀取 prompt 檔案時發生錯誤: {e}")
-            return ""
+            print(f"❌ 讀取 prompt 檔案失敗: {file_path}, 錯誤: {e}")
+            return None
 
     # ---------- Student Data Extraction ----------
     @staticmethod
@@ -99,20 +110,51 @@ class GradingService:
         ]
 
     @staticmethod
-    def generate_feedback(messages, model=None, temperature=1.0):
-        """
-        Call OpenAI ChatCompletion API to generate feedback.
-        """
+    def _generate_feedback_sync(messages, model=None, temperature=1.0):
+        """同步呼叫 OpenAI API（在執行緒池中執行）"""
+        import openai
+        
         if model is None:
             model = MODEL
-            
+        
         openai.api_key = OPENAI_API_KEY
-        response = openai.ChatCompletion.create(
-            model=model,
-            messages=messages,
-            temperature=temperature
+        
+        try:
+            response = openai.ChatCompletion.create(
+                model=model,
+                messages=messages,
+                temperature=temperature
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            print(f"❌ OpenAI API 呼叫失敗: {e}")
+            raise
+
+    @staticmethod
+    async def generate_feedback(messages, model=None, temperature=1.0):
+        """
+        非同步生成評分反饋（使用執行緒池避免阻塞事件循環）
+        
+        Args:
+            messages: ChatGPT 訊息列表
+            model: 使用的模型（可選）
+            temperature: 溫度參數（預設 1.0）
+        
+        Returns:
+            str: AI 生成的反饋內容
+        """
+        loop = asyncio.get_event_loop()
+        
+        # 在執行緒池中執行同步的 OpenAI API 呼叫
+        feedback = await loop.run_in_executor(
+            GradingService._executor,
+            GradingService._generate_feedback_sync,
+            messages,
+            model,
+            temperature
         )
-        return response.choices[0].message.content
+        
+        return feedback
 
     # ---------- Report Generation ----------
     @staticmethod
@@ -139,46 +181,3 @@ class GradingService:
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(full_html)
 
-    # ---------- Processing Functions ----------
-    @staticmethod
-    def process_student_file(file_path, class_name, question_title=None):
-        """
-        Process a single student file and generate both English and Statistics feedback
-        """
-        eng_prompt, stat_prompt = GradingService.get_grading_prompts(question_title)
-        if not eng_prompt or not stat_prompt:
-            raise RuntimeError("請先在 config.py 中設定英文與統計 Prompt。")
-        
-        name, answer = GradingService.extract_student_data(file_path)
-        safe = "".join(c for c in name if c.isalnum() or c in (' ','_')).rstrip()
-        ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        base_dir = "output_reports"
-        eng_dir = os.path.join(base_dir, f"{class_name}_EN_feedback")
-        stat_dir = os.path.join(base_dir, f"{class_name}_STAT_feedback")
-        os.makedirs(eng_dir, exist_ok=True)
-        os.makedirs(stat_dir, exist_ok=True)
-        
-        # English feedback
-        msgs_e = GradingService.create_messages(eng_prompt, name, answer)
-        fb_e = GradingService.generate_feedback(msgs_e)
-        out_e = os.path.join(eng_dir, f"{safe}_{ts}_EN.html")
-        GradingService.create_html_report(fb_e, name, out_e)
-        
-        # Statistics feedback
-        msgs_s = GradingService.create_messages(stat_prompt, name, answer)
-        fb_s = GradingService.generate_feedback(msgs_s)
-        out_s = os.path.join(stat_dir, f"{safe}_{ts}_STAT.html")
-        GradingService.create_html_report(fb_s, name, out_s)
-
-    @staticmethod
-    def process_student_files(folder_path, class_name, question_title=None):
-        """
-        Batch process all .docx files in given folder.
-        """
-        for fname in os.listdir(folder_path):
-            if fname.lower().endswith('.docx'):
-                GradingService.process_student_file(
-                    os.path.join(folder_path, fname), 
-                    class_name, 
-                    question_title
-                )

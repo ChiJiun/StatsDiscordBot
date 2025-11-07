@@ -3,6 +3,7 @@ import hashlib
 from datetime import datetime
 from config import DB_PATH
 import os
+import json
 
 
 class DatabaseManager:
@@ -15,10 +16,6 @@ class DatabaseManager:
 
     def _create_tables(self):
         """建立資料表結構"""
-        # CREATE TABLE IF NOT EXISTS 會確保：
-        # 1. 如果資料表不存在，就創建它
-        # 2. 如果資料表已存在，就跳過不會出錯
-
         # 建立班級資料表
         self.cur.execute(
             """
@@ -52,14 +49,13 @@ class DatabaseManager:
             """
             CREATE TABLE IF NOT EXISTS AssignmentFiles (
                 file_id INTEGER PRIMARY KEY AUTOINCREMENT,
-                student_id VARCHAR(20) NOT NULL,
+                user_id VARCHAR(20) NOT NULL,
+                student_id VARCHAR(50),
                 class_id INTEGER NOT NULL,
                 file_path VARCHAR(500) NOT NULL,
                 file_type VARCHAR(50) DEFAULT 'grading',
-                question_number INTEGER,
+                question_title VARCHAR(200),
                 attempt_number INTEGER,
-                score REAL,
-                feedback TEXT,
                 upload_time DATETIME DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (class_id) REFERENCES Classes(class_id) ON DELETE CASCADE
             )
@@ -71,9 +67,10 @@ class DatabaseManager:
         self.cur.execute("CREATE INDEX IF NOT EXISTS idx_students_class_id ON Students(class_id)")
         self.cur.execute("CREATE INDEX IF NOT EXISTS idx_students_number ON Students(student_number)")
         self.cur.execute("CREATE INDEX IF NOT EXISTS idx_assignment_files_student_id ON AssignmentFiles(student_id)")
-        self.cur.execute("CREATE INDEX IF NOT EXISTS idx_assignment_files_question ON AssignmentFiles(question_number)")
+        self.cur.execute("CREATE INDEX IF NOT EXISTS idx_assignment_files_question ON AssignmentFiles(question_title)")
 
         self.conn.commit()
+        print("✅ 資料庫表格建立完成 / Database tables created")
 
     def create_class(self, class_name):
         """建立新班級"""
@@ -132,7 +129,7 @@ class DatabaseManager:
         return self.cur.fetchone()
 
     def get_students_by_class_id(self, class_id):
-        """獲取指定班級ID的所有學生（統一方法）"""
+        """獲取指定班級ID的所有學生"""
         self.cur.execute(
             """
             SELECT student_id, student_name, student_number, discord_id 
@@ -144,20 +141,18 @@ class DatabaseManager:
         )
         return self.cur.fetchall()
 
-    # 保留向後相容性的別名
     def get_students_by_class(self, class_id):
         """獲取指定班級的學生（向後相容性別名）"""
         return self.get_students_by_class_id(class_id)
 
     def update_student_discord_id_by_student_id(self, student_number, discord_id):
-        """根據學號更新學生的 Discord ID（向後相容性方法）"""
+        """根據學號更新學生的 Discord ID"""
         try:
-            # 檢查是否有重複學號
             self.cur.execute("SELECT COUNT(*) FROM Students WHERE student_number = ?", (student_number,))
             count = self.cur.fetchone()[0]
 
             if count > 1:
-                print(f"⚠️ 警告：發現 {count} 個學號為 {student_number} 的學生，建議使用 update_student_discord_id_by_student_id_and_class 方法")
+                print(f"⚠️ 警告：發現 {count} 個學號為 {student_number} 的學生")
 
             self.cur.execute(
                 """
@@ -168,26 +163,14 @@ class DatabaseManager:
                 (discord_id, student_number),
             )
             self.conn.commit()
-            affected_rows = self.cur.rowcount
-
-            if affected_rows == 0 and count > 0:
-                # 檢查是否是因為已經有 Discord ID
-                self.cur.execute(
-                    "SELECT discord_id FROM Students WHERE student_number = ? AND discord_id IS NOT NULL AND discord_id != ''", (student_number,)
-                )
-                existing_discord = self.cur.fetchone()
-                if existing_discord:
-                    print(f"⚠️ 學號 {student_number} 已綁定 Discord ID: {existing_discord[0]}")
-
-            return affected_rows > 0
-
+            return self.cur.rowcount > 0
         except Exception as e:
             print(f"更新 Discord ID 失敗: {e}")
             self.conn.rollback()
             return False
 
     def update_student_discord_id_by_student_id_and_class(self, student_number, discord_id, class_id):
-        """根據學號和班級ID更新學生的 Discord ID（避免重複學號問題）"""
+        """根據學號和班級ID更新學生的 Discord ID"""
         try:
             self.cur.execute(
                 """
@@ -198,9 +181,7 @@ class DatabaseManager:
                 (discord_id, student_number, class_id),
             )
             self.conn.commit()
-            affected_rows = self.cur.rowcount
-            print(f"📝 更新結果：受影響的行數 = {affected_rows}")
-            return affected_rows > 0
+            return self.cur.rowcount > 0
         except Exception as e:
             print(f"更新 Discord ID 失敗: {e}")
             self.conn.rollback()
@@ -232,113 +213,158 @@ class DatabaseManager:
         )
         return self.cur.fetchone()
 
-    def get_students_by_class(self, class_id):
-        """獲取指定班級的學生"""
-        self.cur.execute(
-            """
-            SELECT student_id, student_name, student_number, discord_id 
-            FROM Students 
-            WHERE class_id = ?
-            ORDER BY student_name
-        """,
-            (class_id,),
-        )
-        return self.cur.fetchall()
-
     def get_class_by_name(self, class_name):
         """根據班級名稱獲取班級資料"""
         self.cur.execute("SELECT class_id, class_name FROM Classes WHERE class_name = ?", (class_name,))
         return self.cur.fetchone()
 
-    def get_max_attempt(self, user_id, question_number):
-        """獲取使用者對特定題目的最大嘗試次數"""
+    def get_max_attempt(self, discord_id, question_title):
+        """
+        獲取使用者對特定題目的最大嘗試次數
+        
+        Args:
+            discord_id (str): Discord ID（用於查詢的唯一標識）
+            question_title (str): 題目標題
+            
+        Returns:
+            int: 最大嘗試次數，如果沒有記錄則返回 0
+        """
         self.cur.execute(
             """
             SELECT MAX(attempt_number) FROM AssignmentFiles
-            WHERE student_id = ? AND question_number = ?
-        """,
-            (user_id, question_number),
+            WHERE user_id = ? AND question_title = ?
+            """,
+            (discord_id, question_title),
         )
         result = self.cur.fetchone()[0]
+        print(f"🔍 查詢嘗試次數: Discord ID={discord_id}, 題目={question_title}, 結果={result if result is not None else 0}")
         return result if result is not None else 0
 
-    def insert_submission(self, user_id, student_name, student_id, question_number, attempt_number, html_path, score, feedback):
-        """插入作業提交記錄"""
+    def insert_submission(self, discord_id, student_name, student_number, question_title, attempt_number, 
+                         html_path):
+        """
+        插入作業提交記錄
+        
+        Args:
+            discord_id (str): Discord ID（主要查詢鍵）
+            student_name (str): 學生姓名
+            student_number (str): 學號（用於顯示）
+            question_title (str): 題目標題
+            attempt_number (int): 嘗試次數
+            html_path (str): HTML 報告檔案路徑
+            feedback (str, optional): 反饋內容
+            report_data (dict, optional): 報告數據
+            
+        Returns:
+            bool: 插入成功返回 True，失敗返回 False
+        """
         try:
-            # 獲取學生資料
-            student_data = self.get_student_by_discord_id(user_id)
+            # 獲取學生資料（通過 Discord ID）
+            student_data = self.get_student_by_discord_id(discord_id)
             if not student_data:
-                print(f"❌ 找不到用戶 {user_id} 的學生資料")
+                print(f"❌ 找不到 Discord ID {discord_id} 的學生資料")
                 return False
 
-            # 解包學生資料
-            # get_student_by_discord_id 返回：(student_id, student_name, student_number, discord_id, class_id, class_name)
-            db_student_id, db_student_name, student_number, discord_id, class_id, class_name = student_data
+            db_student_id, db_student_name, db_student_number, db_discord_id, class_id, class_name = student_data
 
+            # 插入記錄 - user_id 存儲 Discord ID，student_id 存儲學號
             self.cur.execute(
                 """
                 INSERT INTO AssignmentFiles 
-                (student_id, class_id, file_path, file_type, question_number, attempt_number, score, feedback, upload_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                (user_id, student_id, class_id, file_path, file_type, question_title, attempt_number, 
+                 upload_time)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
-                    str(user_id),  # student_id (使用 Discord ID)
-                    class_id,  # class_id
-                    html_path,  # file_path
-                    "grading",  # file_type
-                    question_number,  # question_number
-                    attempt_number,  # attempt_number
-                    score,  # score
-                    feedback,  # feedback
-                    datetime.now().isoformat(),  # upload_time
+                    str(discord_id),  # ✅ user_id 欄位存 Discord ID
+                    db_student_number or student_number,  # ✅ student_id 欄位存學號
+                    class_id,
+                    html_path,
+                    "grading",
+                    question_title,
+                    attempt_number,
+                    datetime.now().isoformat(),
                 ),
             )
 
             self.conn.commit()
-            print(f"✅ 已記錄提交：用戶 {user_id}, 題目 {question_number}, 嘗試 {attempt_number}")
+            print(f"✅ 已記錄提交：Discord ID={discord_id}, 學號={db_student_number or student_number}, 題目={question_title}, 嘗試={attempt_number}")
             return True
 
         except Exception as e:
             print(f"❌ 插入提交記錄失敗: {e}")
             import traceback
-
             traceback.print_exc()
+            self.conn.rollback()
             return False
 
-    def get_student_submissions(self, student_id, question_number=None):
-        """獲取學生的作業提交記錄"""
-        if question_number:
+    def get_student_submissions(self, discord_id, question_title=None):
+        """
+        獲取學生的作業提交記錄
+        
+        Args:
+            discord_id (str): Discord ID
+            question_title (str, optional): 題目標題（如果指定則只查詢該題目）
+            
+        Returns:
+            list: 提交記錄列表
+        """
+        if question_title:
             self.cur.execute(
                 """
-                SELECT file_id, upload_time, file_path, attempt_number, score, feedback
+                SELECT file_id, upload_time, file_path, attempt_number
                 FROM AssignmentFiles 
-                WHERE student_id = ? AND question_number = ? AND file_type = 'grading'
+                WHERE user_id = ? AND question_title = ? AND file_type = 'grading'
                 ORDER BY attempt_number DESC
             """,
-                (student_id, question_number),
+                (discord_id, question_title),
             )
         else:
             self.cur.execute(
                 """
-                SELECT file_id, upload_time, file_path, question_number, attempt_number, score, feedback
+                SELECT file_id, upload_time, file_path, question_title, attempt_number
                 FROM AssignmentFiles 
-                WHERE student_id = ? AND file_type = 'grading'
-                ORDER BY question_number, attempt_number DESC
+                WHERE user_id = ? AND file_type = 'grading'
+                ORDER BY question_title, attempt_number DESC
             """,
-                (student_id,),
+                (discord_id,),
             )
         return self.cur.fetchall()
 
+    def get_submission_details(self, file_id):
+        """獲取單一提交的詳細資訊"""
+        self.cur.execute(
+            """
+            SELECT file_path
+            FROM AssignmentFiles
+            WHERE file_id = ?
+        """,
+            (file_id,),
+        )
+        result = self.cur.fetchone()
+        if result:
+            return {
+                'file_path': result[0]
+            }
+        return None
+
     def get_class_statistics(self, class_id):
-        """獲取班級統計資料"""
+        """
+        獲取班級統計資料
+        
+        Args:
+            class_id (int): 班級 ID
+            
+        Returns:
+            tuple: (學生總數, 作業提交總數)
+        """
         self.cur.execute(
             """
             SELECT 
                 COUNT(DISTINCT s.student_id) as total_students,
-                COUNT(af.file_id) as total_submissions,
-                AVG(af.score) as avg_score
+                COUNT(af.file_id) as total_submissions
             FROM Students s
-            LEFT JOIN AssignmentFiles af ON s.student_id = af.student_id
+            LEFT JOIN AssignmentFiles af ON s.discord_id = af.user_id
             WHERE s.class_id = ?
         """,
             (class_id,),
@@ -350,18 +376,8 @@ class DatabaseManager:
         self.conn.close()
 
     def login_with_password(self, password, discord_id):
-        """
-        使用密碼登入並綁定Discord ID
-
-        Args:
-            password (str): 學生密碼（原始密碼）
-            discord_id (str): Discord ID
-
-        Returns:
-            dict: 登入結果
-        """
+        """使用密碼登入並綁定Discord ID"""
         try:
-            # 查找有此密碼且Discord ID為空的學生
             self.cur.execute(
                 """
                 SELECT s.student_id, s.student_name, s.student_number, s.discord_id, s.class_id, c.class_name, s.password
@@ -375,18 +391,16 @@ class DatabaseManager:
             student_record = self.cur.fetchone()
 
             if not student_record:
-                # 檢查是否密碼錯誤或已被使用
                 self.cur.execute("SELECT COUNT(*) FROM Students WHERE password = ?", (password,))
                 password_exists = self.cur.fetchone()[0] > 0
 
                 if password_exists:
-                    return {"success": False, "error": "此密碼已被其他帳戶使用，每個密碼只能綁定一個Discord帳戶"}
+                    return {"success": False, "error": "此密碼已被其他帳戶使用"}
                 else:
-                    return {"success": False, "error": "密碼錯誤，請檢查您輸入的密碼是否正確"}
+                    return {"success": False, "error": "密碼錯誤"}
 
             student_id, student_name, student_number, current_discord_id, class_id, class_name, stored_password = student_record
 
-            # 更新Discord ID
             self.cur.execute(
                 """
                 UPDATE Students 
@@ -398,27 +412,16 @@ class DatabaseManager:
 
             self.conn.commit()
 
-            # 返回更新後的學生資料
             updated_student_data = (student_id, student_name, student_number, discord_id, class_id, class_name)
 
-            return {"success": True, "student_data": updated_student_data, "message": f"成功綁定Discord ID到學生帳戶：{student_name}"}
+            return {"success": True, "student_data": updated_student_data, "message": f"成功綁定：{student_name}"}
 
         except Exception as e:
-            return {"success": False, "error": f"登入過程中發生資料庫錯誤：{e}"}
+            return {"success": False, "error": f"登入錯誤：{e}"}
 
     def update_student_discord_id(self, student_id, discord_id):
-        """
-        更新學生的Discord ID
-
-        Args:
-            student_id (int): 學生ID
-            discord_id (str): Discord ID
-
-        Returns:
-            bool: 更新是否成功
-        """
+        """更新學生的Discord ID"""
         try:
-            # 檢查Discord ID是否已被其他學生使用
             self.cur.execute("SELECT student_id FROM Students WHERE discord_id = ? AND student_id != ?", (discord_id, student_id))
             existing_student = self.cur.fetchone()
 
@@ -442,15 +445,7 @@ class DatabaseManager:
             return False
 
     def get_student_by_password(self, password):
-        """
-        根據密碼查找學生
-
-        Args:
-            password (str): 學生密碼
-
-        Returns:
-            tuple: 學生資料 (student_id, student_name, discord_id, class_id, class_name) 或 None
-        """
+        """根據密碼查找學生"""
         try:
             self.cur.execute(
                 """
@@ -467,6 +462,7 @@ class DatabaseManager:
         except Exception as e:
             print(f"查找學生時發生錯誤: {e}")
             return None
+
 
 def main():
     """主程式 - 用於獨立運行資料庫管理"""
@@ -667,7 +663,6 @@ def show_full_statistics(db):
         print(f"\n  📚 {class_name}:")
         print(f"    - 學生數 / Students: {stats[0]}")
         print(f"    - 作業提交數 / Submissions: {stats[1]}")
-        print(f"    - 平均分數 / Average score: {stats[2]:.2f if stats[2] else 0:.2f}")
     
     # 全域統計
     db.cur.execute("SELECT COUNT(*) FROM Students")
@@ -679,14 +674,15 @@ def show_full_statistics(db):
     db.cur.execute("SELECT COUNT(*) FROM AssignmentFiles")
     total_submissions = db.cur.fetchone()[0]
     
-    db.cur.execute("SELECT AVG(score) FROM AssignmentFiles WHERE score IS NOT NULL")
-    avg_score = db.cur.fetchone()[0]
+    db.cur.execute("SELECT AVG(eng_total_score), AVG(stats_total_score) FROM AssignmentFiles")
+    avg_scores = db.cur.fetchone()
     
     print(f"\n🌐 全域統計 / Global Statistics:")
     print(f"  • 總學生數 / Total students: {total_students}")
     print(f"  • 已綁定 Discord / Discord bound: {bound_students} ({bound_students/total_students*100:.1f}%)" if total_students > 0 else "  • 已綁定 Discord / Discord bound: 0 (0%)")
     print(f"  • 總作業提交 / Total submissions: {total_submissions}")
-    print(f"  • 全域平均分 / Global average: {avg_score:.2f if avg_score else 0:.2f}")
+    print(f"  • 全域平均英文分數 / Global avg English: {avg_scores[0]:.2f if avg_scores[0] else 0:.2f}")
+    print(f"  • 全域平均統計分數 / Global avg Statistics: {avg_scores[1]:.2f if avg_scores[1] else 0:.2f}")
 
 
 def check_database_integrity(db):

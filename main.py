@@ -13,5 +13,5 @@ if __name__ == "__main__":
     except ImportError as e:
         print(f"❌ 導入錯誤: {e}")
         print("請確保所有必要的模組和設定檔案都存在且配置正確")
-    except Exception as e:
+    except Exception as e:  
         print(f"❌ 啟動機器人時發生錯誤: {e}")
