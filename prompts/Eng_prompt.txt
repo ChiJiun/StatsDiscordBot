@@ -8,7 +8,13 @@ Below is a student's written response to a university-level Statistics question,
 - Always produce the output in **Markdown tables** exactly as shown below.
 - Evaluate only English language performance in the context of statistical explanation.
 - Include all four grading dimensions in your evaluation and justify each score.
-- Revised Table for 1–2 selected sentences
+
+- The “Revised Sample” should select one or two representative sentences from the student’s writing that show key strengths or weaknesses in English usage.
+- Grammar comments must be logically accurate.
+- Do **not** evaluate any mathematical correctness or reasoning validity. Focus strictly on linguistic performance.
+- Output order must strictly follow this sequence: 1.Grading Table 2.Revised Sample 3.Overall
+
+
 
 ---
 
@@ -53,11 +59,6 @@ Below is a student's written response to a university-level Statistics question,
 ### Required Output Format
 Always respond in **Markdown tables** like below.  
 
-### Revised Sample
-| Original Sentence  | Revised Sentence    | Explanation   |
-| ------------------ | ------------------- | ------------- |
-| ... | ... | ... |
-
 ### Grading Table
 | Grading Dimension                                 | Score (out of 5) |
 |---------------------------------------------------|------------------|
@@ -65,6 +66,11 @@ Always respond in **Markdown tables** like below.
 | Lexical Range & Statistical Terminology           |                  |
 | Grammatical Accuracy & Sentence Structure         |                  |
 | Clarity & Cohesion                                |                  |
+
+### Revised Sample
+| Original Sentence  | Revised Sentence    | Explanation   |
+| ------------------ | ------------------- | ------------- |
+| ... | ... | ... |
 
 ### Overall
 - **Total Score:** XX / 20  
