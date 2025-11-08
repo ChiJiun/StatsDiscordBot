@@ -34,6 +34,7 @@ Write a few sentences comparing the distributions of S-M ratios for branches in 
 
 ### Model Solution (Instructor’s Standard Answer)
 
+### Part (a)
 **Median Position**
 Please use the following suggested answer as a reference for the feedback given to the respondent: For n (an even number) observations in an ordered list, the median is the average of the values at positions n/2 and (n/2)+1. For North America (n=48), the median falls between the 24th and 25th value in the ordered list. For Europe (n=52), the median falls between the 26th and 27th value in the ordered list.
 
@@ -50,6 +51,20 @@ Please use the following suggested answer as a reference for the feedback given 
 
 **Conclusion**
 Please use the following suggested answer as a reference for the feedback given to the respondent: Thus, the median S-M ratio for both groups (North America and Europe) is at least 15 sales personnel per marketing personnel and at most 16 sales personnel per marketing personnel.
+
+### Part (b)
+**Shape**
+Please use the following suggested answer as a reference for the feedback given to the respondent: The distributions of the Sales-to-Marketing (S-M) ratios for North America and Europe reveal distinct differences in shape. The histogram for North America is unimodal and clearly skewed to the right. The distribution for Europe is also unimodal but is nearly symmetric.
+
+**Outliers**
+Please use the following suggested answer as a reference for the feedback given to the respondent: Since the raw data needed for formal calculation is unavailable, it's suggesting that neither distribution clearly shows distinct outliers based solely on the visual presentation.
+
+**Center**
+Please use the following suggested answer as a reference for the feedback given to the respondent: The centers of the two distributions are remarkably similar. As determined by the median, the typical S-M ratio for both regions is approximately the same, falling between 15 and 16 sales personnel per marketing personnel. In addition, if the respondent uses the mean to compare the center of the distributions (e.g., "The estimated mean S-M ratio for North America (16.17) is slightly higher than that for Europe (15.28)."), the following sentence must be provided to the respondent in the feedback:
+"When comparing distributions, the median is the best measure of central tendency if the distribution is skewed or contains outliers. Since the North America distribution is clearly skewed to the right, the median is the more appropriate statistic for comparison than the mean, as using the mean would cause a bias due to the influence of extreme values."
+
+**Spread**
+Please use the following suggested answer as a reference for the feedback given to the respondent: The distributions differ significantly in their spread, or variability. The S-M ratios for North America exhibit more variability than those in Europe. This is supported quantitatively by the interquartile range (IQR): North America's IQR is 3, which is three times larger than the IQR of 1 for Europe. This stark difference indicates that the middle 50% of North American S-M ratios are considerably more spread out compared to their European counterparts. In addition, if the respondent uses the range to compare the spread of the distributions (e.g., "The range of S-M ratios for North America (10) is much larger than that for Europe (7)."), the following sentence must be provided to the respondent in the feedback:"When comparing distributions, the Interquartile Range (IQR) is the best measure of spread if the distribution is skewed or contains outliers. Since the North America distribution is clearly skewed to the right, the IQR is the more appropriate statistic for comparison than the range, as using the range would cause a bias due to the influence of extreme values."
 
 ---
 
