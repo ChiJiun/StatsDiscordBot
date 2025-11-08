@@ -4,7 +4,7 @@ aiohttp<=3.9.0
 dnspython<=2.3.0
 
 # 環境變數和設定
-python-dotenv=0.21.0
+python-dotenv<=0.21.0
 
 # AI/OpenAI
 openai==0.28.0
