@@ -28,6 +28,10 @@ NCUFN_CHANNEL_ID = int(os.getenv("NCUFN_CHANNEL_ID", 0))  # 中央財金系頻�
 NCUEC_CHANNEL_ID = int(os.getenv("NCUEC_CHANNEL_ID", 0))  # 中央經濟系頻道 ID
 CYCUIUBM_CHANNEL_ID = int(os.getenv("CYCUIUBM_CHANNEL_ID", 0))  # 中原國商頻道 ID
 
+# 管理員通知設定
+ADMIN_CHANNEL_ID = int(os.getenv("ADMIN_CHANNEL_ID", 0))  # 管理員通知頻道 ID
+ADMIN_ROLE_ID = int(os.getenv("ADMIN_ROLE_ID", 0))  # 管理員身分組 ID（用於提及）
+
 # Discord 身分組設定
 NCUFN_ROLE_NAME = "NCUFN"  # 中央大學財金系
 NCUEC_ROLE_NAME = "NCUEC"  # 中央大學經濟系

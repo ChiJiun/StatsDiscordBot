@@ -79,6 +79,64 @@ class HomeworkBot:
             return user_class, self.class_channels[user_class]
         return user_class, None
 
+    def _is_bot_welcome_message(self, message):
+        """檢查是否為機器人歡迎訊息"""
+        if message.author != self.client.user:
+            return False
+        
+        if not message.embeds:
+            return False
+        
+        embed = message.embeds[0]
+        welcome_titles = [
+            "歡迎使用統計學AI評分系統",
+            "歡迎來到 HTML 作業評分系統", 
+            "Welcome to Statistics AI Grading System"
+        ]
+        
+        return any(title in embed.title for title in welcome_titles)
+
+    async def _notify_administrators(self, title, description, error_details=None, severity="warning"):
+        """發送通知給管理員"""
+        try:
+            # 延遲匯入以避免循環導入
+            from config import ADMIN_CHANNEL_ID, ADMIN_ROLE_ID
+            
+            if not ADMIN_CHANNEL_ID:
+                print("⚠️ 未設定管理員頻道 ID，跳過通知")
+                return
+                
+            channel = self.client.get_channel(ADMIN_CHANNEL_ID)
+            if not channel:
+                print(f"❌ 找不到管理員頻道: {ADMIN_CHANNEL_ID}")
+                return
+                
+            # Create embed for notification
+            embed = discord.Embed(
+                title=f"🚨 {title}",
+                description=description,
+                color=0xFF0000 if severity == "error" else 0xFFA500
+            )
+            
+            if error_details:
+                embed.add_field(
+                    name="錯誤詳情 / Error Details",
+                    value=f"```{str(error_details)[:1000]}```",
+                    inline=False
+                )
+                
+            embed.set_footer(text=f"時間 / Time: {discord.utils.utcnow().strftime('%Y-%m-%d %H:%M:%S UTC')}")
+            
+            # Mention admin role if configured
+            admin_mention = ""
+            if ADMIN_ROLE_ID:
+                admin_mention = f"<@&{ADMIN_ROLE_ID}> "
+                
+            await channel.send(f"{admin_mention}管理員通知 / Admin Notification", embed=embed)
+            
+        except Exception as e:
+            print(f"❌ 發送管理員通知失敗: {e}")
+
     async def on_ready(self):
         """機器人啟動時執行的事件處理器"""
         self.session = aiohttp.ClientSession()
@@ -117,7 +175,7 @@ class HomeworkBot:
 
         embed.add_field(name="🏦 中央大學財金系同學 / NCU Finance", value="請使用指令 / Use command: `!join NCUFN`", inline=True)
         embed.add_field(name="📈 中央大學經濟系同學 / NCU Economics", value="請使用指令 / Use command: `!join NCUEC`", inline=True)
-        embed.add_field(name="🌐 中原大學國商學程同學 / CYU IUBM", value="請使用指令 / Use command: `!join CYCUIUBM`", inline=True)
+        embed.add_field(name="🌐 中原大學國商學程同學 / CYCU IUBM", value="請使用指令 / Use command: `!join CYCUIUBM`", inline=True)
 
         embed.add_field(
             name="📚 系統功能說明 / System Features",
@@ -209,9 +267,16 @@ class HomeworkBot:
     async def on_message(self, message):
         """處理收到的 Discord 訊息事件"""
         if message.author.bot:
+            # 檢查是否為機器人歡迎訊息，如果是則保留
+            if self._is_bot_welcome_message(message):
+                return
+            # 其他機器人訊息也忽略
             return
 
         user_id = str(message.author.id)
+
+        # 中央化訊息刪除邏輯 - 除了機器人歡迎訊息外，刪除所有處理過的訊息
+        should_delete = False
 
         # 檢查是否為私訊 - 直接引導到班級頻道
         if isinstance(message.channel, discord.DMChannel):
@@ -241,26 +306,26 @@ class HomeworkBot:
         if message.content.lower().startswith("!join"):
             if message.channel.id != WELCOME_CHANNEL_ID:
                 await message.author.send("❌ 加入身分組指令只能在歡迎頻道使用！\n" "❌ Join role command can only be used in welcome channel!")
+                should_delete = True
+            else:
+                parts = message.content.split()
+                if len(parts) != 2:
+                    await message.author.send(
+                        "❌ 使用方法 / Usage: `!join NCUFN` 或 or `!join NCUEC` 或 or `!join CYCUIUBM`\n"
+                        "⚠️ 注意 / Note：每人只能選擇一個身分組！/ Each person can only choose one role!"
+                    )
+                    should_delete = True
+                else:
+                    role_type = parts[1].upper()
+                    await self._handle_join_role(message, role_type)
+                    # _handle_join_role 會自行刪除訊息
+                    return
+            # 如果到這裡，代表有錯誤，刪除訊息
+            if should_delete:
                 try:
                     await message.delete()
                 except:
                     pass
-                return
-
-            parts = message.content.split()
-            if len(parts) != 2:
-                await message.author.send(
-                    "❌ 使用方法 / Usage: `!join NCUFN` 或 or `!join NCUEC` 或 or `!join CYCUIUBM`\n"
-                    "⚠️ 注意 / Note：每人只能選擇一個身分組！/ Each person can only choose one role!"
-                )
-                try:
-                    await message.delete()
-                except:
-                    pass
-                return
-
-            role_type = parts[1].upper()
-            await self._handle_join_role(message, role_type)
             return
 
         # 檢查是否為歡迎頻道的其他訊息 (除了 !join)
@@ -271,14 +336,10 @@ class HomeworkBot:
                 "請使用 `!join 學校代碼` 來選擇您的身分，完成後請到您的班級頻道使用其他功能。\n"
                 "Please use `!join school_code` to choose your identity, then go to your class channel to use other features."
             )
-            try:
-                await message.delete()
-            except:
-                pass
-            return
+            should_delete = True
 
         # 檢查是否在正確的班級頻道 (其他所有指令都需要在班級頻道)
-        if not self._is_class_channel(message.channel.id, user_class):
+        elif not self._is_class_channel(message.channel.id, user_class):
             channel_info = ""
             if user_class and user_channel_id:
                 channel_info = f"\n🏫 **您的專屬班級頻道 / Your class channel：<#{user_channel_id}>**"
@@ -294,14 +355,10 @@ class HomeworkBot:
                 "• `!my-submissions` - 查看我的作業記錄 / View my submission history\n"
                 "• 📤 **上傳 HTML 作業檔案進行AI評分 / Upload HTML file for AI grading**"
             )
-            try:
-                await message.delete()
-            except:
-                pass
-            return
+            should_delete = True
 
         # 處理幫助指令
-        if message.content.lower() == "!help":
+        elif message.content.lower() == "!help":
             is_admin = message.author.guild_permissions.administrator
 
             help_text = (
@@ -336,24 +393,51 @@ class HomeworkBot:
             )
 
             await message.author.send(help_text)
+            should_delete = True
+
+        # 處理密碼登入指令
+        elif message.content.lower().startswith("!login"):
+            await self._handle_password_login(message)
+            should_delete = True
+
+        # 處理我的提交記錄指令
+        elif message.content.lower() == "!my-submissions":
+            await self._show_my_submissions(message)
+            should_delete = True
+
+        # 添加管理員指令
+        elif message.content.lower() == "!update-welcome" and message.author.guild_permissions.administrator:
+            # ... existing update-welcome logic ...
+            should_delete = True
+
+        # 處理 HTML 檔案上傳
+        elif message.attachments and any(att.filename.lower().endswith('.html') for att in message.attachments):
+            await self._process_html_file(message)
+            # HTML 檔案處理會在方法內部刪除訊息，所以這裡不設定 should_delete
+
+        # 其他所有訊息（包括非 HTML 附件、無效指令等）
+        else:
+            # 引導用戶使用正確的功能
+            await message.author.send(
+                "❓ **無效的指令或檔案**\n"
+                "❓ **Invalid command or file**\n\n"
+                "請使用以下功能：\n"
+                "Please use the following features:\n\n"
+                "• `!help` - 查看使用指南 / View guide\n"
+                "• `!my-submissions` - 查看作業記錄 / View submissions\n"
+                "• 📤 上傳 `.html` 檔案進行AI評分 / Upload `.html` file for AI grading"
+            )
+            should_delete = True
+
+        # 統一刪除訊息
+        if should_delete:
             try:
                 await message.delete()
             except (discord.Forbidden, discord.NotFound):
                 pass
-            return
-
-        # 處理密碼登入指令
-        if message.content.lower().startswith("!login"):
-            await self._handle_password_login(message)
-            return
-
-        # 處理我的提交記錄指令
-        if message.content.lower() == "!my-submissions":
-            await self._show_my_submissions(message)
-            return
 
         # 添加管理員指令
-        if message.content.lower() == "!update-welcome" and message.author.guild_permissions.administrator:
+        elif message.content.lower() == "!update-welcome" and message.author.guild_permissions.administrator:
             try:
                 # 收集所有要更新的頻道（歡迎頻道 + 班級頻道）
                 all_channels = {"Welcome": WELCOME_CHANNEL_ID}
@@ -417,40 +501,33 @@ class HomeworkBot:
                 )
                 print(f"❌ 更新歡迎訊息錯誤: {e}")
 
-            try:
-                await message.delete()
-            except:
-                pass
-            return
+            should_delete = True
 
         # 處理 HTML 檔案上傳
-        if message.attachments:
-            # 處理檔案
-            for file in message.attachments:
-                if file.filename.lower().endswith(".html"):
-                    await self._process_html_file(message, file, user_id)
-                    return
+        elif message.attachments and any(att.filename.lower().endswith('.html') for att in message.attachments):
+            await self._process_html_file(message)
+            # HTML 檔案處理會在方法內部刪除訊息，所以這裡不設定 should_delete
 
-            # 如果有附件但不是 HTML 檔案
-            await message.author.send("❌ 請只上傳 `.html` 檔案進行評分。\n" "❌ Please only upload `.html` files for grading.")
+        # 其他所有訊息（包括非 HTML 附件、無效指令等）
+        else:
+            # 引導用戶使用正確的功能
+            await message.author.send(
+                "❓ **無效的指令或檔案**\n"
+                "❓ **Invalid command or file**\n\n"
+                "請使用以下功能：\n"
+                "Please use the following features:\n\n"
+                "• `!help` - 查看使用指南 / View guide\n"
+                "• `!my-submissions` - 查看作業記錄 / View submissions\n"
+                "• 📤 上傳 `.html` 檔案進行AI評分 / Upload `.html` file for AI grading"
+            )
+            should_delete = True
+
+        # 統一刪除訊息
+        if should_delete:
             try:
                 await message.delete()
-            except:
+            except (discord.Forbidden, discord.NotFound):
                 pass
-            return
-
-        # 自動刪除其他訊息
-        try:
-            await message.delete()
-            await message.author.send(
-                "ℹ️ **頻道使用提醒 / Channel Usage Reminder**\n\n"
-                "此頻道專門用於系統功能和作業評分。\n"
-                "This channel is dedicated to system features and homework grading.\n\n"
-                "請使用 `!help` 查看所有可用功能。\n"
-                "Please use `!help` to view all available features."
-            )
-        except (discord.Forbidden, discord.NotFound):
-            pass
 
     async def _process_html_file(self, message, file, user_id):
         """處理 HTML 檔案上傳"""
@@ -608,6 +685,19 @@ class HomeworkBot:
 
             if save_path is None:
                 await message.author.send("❌ 檔案保存失敗\n" "❌ File save failed")
+                
+                # 通知管理員 Google Drive 保存失敗
+                await self._notify_administrators(
+                    "Google Drive 上傳失敗 / Google Drive Upload Failed",
+                    f"檔案上傳到 Google Drive 失敗\nFile upload to Google Drive failed\n\n"
+                    f"• 用戶 / User: {db_student_name} ({student_number or student_id_from_html})\n"
+                    f"• 檔案 / File: {file.filename}\n"
+                    f"• 班級 / Class: {class_name}\n"
+                    f"• 題目 / Question: {html_title}",
+                    error_details=f"Local save path: {temp_path}",
+                    severity="error"
+                )
+                
                 return
 
             # 發送處理中訊息
@@ -673,6 +763,18 @@ class HomeworkBot:
 
             except asyncio.TimeoutError:
                 await processing_msg.edit(content="⏱️ AI評分超時，請稍後再試。\n⏱️ AI grading timeout, please try again later.")
+                
+                # 通知管理員 AI 評分超時
+                await self._notify_administrators(
+                    "AI 評分超時 / AI Grading Timeout",
+                    f"AI 評分處理超時\nAI grading process timed out\n\n"
+                    f"• 用戶 / User: {db_student_name} ({student_number or student_id_from_html})\n"
+                    f"• 題目 / Question: {html_title}\n"
+                    f"• 嘗試次數 / Attempt: {attempt_number}\n"
+                    f"• 班級 / Class: {class_name}",
+                    severity="warning"
+                )
+                
                 print(f"❌ AI評分超時: {html_title}")
                 return
             except Exception as e:
@@ -706,6 +808,18 @@ class HomeworkBot:
                 )
             except asyncio.TimeoutError:
                 await processing_msg.edit(content="⏱️ 報告生成超時，請聯繫管理員。\n⏱️ Report generation timeout, please contact admin.")
+                
+                # 通知管理員報告生成超時
+                await self._notify_administrators(
+                    "報告生成超時 / Report Generation Timeout",
+                    f"報告生成處理超時\nReport generation process timed out\n\n"
+                    f"• 用戶 / User: {db_student_name} ({student_number or student_id_from_html})\n"
+                    f"• 題目 / Question: {html_title}\n"
+                    f"• 嘗試次數 / Attempt: {attempt_number}\n"
+                    f"• 班級 / Class: {class_name}",
+                    severity="warning"
+                )
+                
                 print(f"❌ 報告生成超時: {html_title}")
                 return
 
@@ -748,6 +862,20 @@ class HomeworkBot:
                 )
             except Exception as db_error:
                 print(f"❌ 資料庫寫入錯誤: {db_error}")
+                
+                # 通知管理員資料庫寫入失敗
+                await self._notify_administrators(
+                    "資料庫寫入失敗 / Database Write Failed", 
+                    f"提交記錄寫入資料庫失敗\nSubmission record database write failed\n\n"
+                    f"• 用戶 / User: {db_student_name} ({student_number or student_id_from_html})\n"
+                    f"• 題目 / Question: {html_title}\n"
+                    f"• 嘗試次數 / Attempt: {attempt_number}\n"
+                    f"• 班級 / Class: {class_name}\n"
+                    f"• 報告路徑 / Report Path: {report_path}",
+                    error_details=db_error,
+                    severity="error"
+                )
+                
                 import traceback
                 traceback.print_exc()
                 # 即使資料庫寫入失敗，仍繼續發送報告給用戶
@@ -871,7 +999,7 @@ class HomeworkBot:
                     "Please go to welcome channel and use the following commands to join a role:\n\n"
                     "• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
                     "• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
-                    "• `!join CYCUIUBM` - 中原大學國際商學學士學位學程 / CYU IUBM\n\n"
+                    "• `!join CYCUIUBM` - 中原大學國際商學學士學位學程 / CYCU IUBM\n\n"
                     "⚠️ **重要 / Important**：只有擁有對應身分組的用戶才能登入該班級的帳號！\n"
                     "Only users with corresponding role can login to that class account!"
                 )
@@ -1426,6 +1554,25 @@ class HomeworkBot:
                     f"• 身分組類型 / Role Type: `{role_type}`\n"
                     f"• 請確認身分組存在且機器人有權限\n"
                     f"  Please ensure the role exists and bot has permissions"
+                )
+                return
+
+            # 檢查用戶是否已經擁有任何班級身分組
+            existing_class_roles = []
+            for role_name_check in [NCUFN_ROLE_NAME, NCUEC_ROLE_NAME, CYCUIUBM_ROLE_NAME]:
+                existing_role = discord.utils.get(member.roles, name=role_name_check)
+                if existing_role:
+                    existing_class_roles.append(existing_role)
+
+            if existing_class_roles:
+                existing_role_names = [r.name for r in existing_class_roles]
+                await message.author.send(
+                    f"❌ **您已經擁有身分組 / You Already Have a Role**\n\n"
+                    f"• 目前身分組 / Current role(s): `{', '.join(existing_role_names)}`\n"
+                    f"• 每個用戶只能選擇一個學校身分組\n"
+                    f"  Each user can only choose one school identity\n\n"
+                    f"💡 如果需要更改身分組，請聯繫管理員\n"
+                    f"💡 If you need to change your role, please contact an administrator"
                 )
                 return
 
