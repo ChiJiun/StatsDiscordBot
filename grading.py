@@ -7,7 +7,7 @@ import docx
 import markdown
 import asyncio
 from concurrent.futures import ThreadPoolExecutor
-from config import OPENAI_API_KEY, MODEL, DEFAULT_PROMPTS, SPECIFIC_PROMPTS
+from config import OPENAI_API_KEY, MODEL, SPECIFIC_PROMPTS
 
 
 class GradingService:
@@ -18,41 +18,37 @@ class GradingService:
     def get_grading_prompts(question_title=None):
         """
         Get grading prompts from config.py based on question title
-        Args:
-            question_title (str, optional): The title of the question/homework
         Returns: 
-            (eng_prompt, stat_prompt)
+            (eng_prompt, stat_prompt) or (None, None) if not found
         """
-        # 如果沒有提供題目標題，使用預設 prompt
+        # 如果沒有提供題目標題，直接返回 None
         if not question_title:
-            eng_prompt_file = DEFAULT_PROMPTS["english"]
-            stat_prompt_file = DEFAULT_PROMPTS["statistics"]
-        else:
-            # 檢查是否有該題目的特定 prompt
-            if question_title in SPECIFIC_PROMPTS:
-                prompt_config = SPECIFIC_PROMPTS[question_title]
-                
-                # 確保 prompt_config 是字典
-                if isinstance(prompt_config, dict):
-                    eng_prompt_file = prompt_config.get("english", DEFAULT_PROMPTS["english"])
-                    stat_prompt_file = prompt_config.get("statistics", DEFAULT_PROMPTS["statistics"])
-                else:
-                    # 如果不是字典，使用預設值
-                    print(f"⚠️ 警告：題目 '{question_title}' 的 prompt 配置格式錯誤，使用預設 prompt")
-                    eng_prompt_file = DEFAULT_PROMPTS["english"]
-                    stat_prompt_file = DEFAULT_PROMPTS["statistics"]
+            return None, None
+        
+        # ✅ 修改：嚴格檢查，只有在 SPECIFIC_PROMPTS 有定義時才回傳
+        if question_title in SPECIFIC_PROMPTS:
+            prompt_config = SPECIFIC_PROMPTS[question_title]
+            
+            # 確保 prompt_config 是字典
+            if isinstance(prompt_config, dict):
+                eng_prompt_file = prompt_config.get("english")
+                stat_prompt_file = prompt_config.get("statistics")
+                print(f"🎯 題目 '{question_title}' 找到專屬 Prompt")
             else:
-                # 沒有特定 prompt，使用預設
-                print(f"ℹ️ 題目 '{question_title}' 沒有特定 prompt，使用預設 prompt")
-                eng_prompt_file = DEFAULT_PROMPTS["english"]
-                stat_prompt_file = DEFAULT_PROMPTS["statistics"]
+                print(f"⚠️ 警告：題目 '{question_title}' 的 prompt 配置格式錯誤")
+                return None, None
+        else:
+            # ❌ 如果找不到特定 prompt，直接返回 None，不使用預設值
+            print(f"ℹ️ 題目 '{question_title}' 尚未設定 Prompt，停止評分")
+            return None, None
         
         # 讀取 prompt 檔案內容
         eng_prompt = GradingService._read_prompt_file(eng_prompt_file)
         stat_prompt = GradingService._read_prompt_file(stat_prompt_file)
         
         if not eng_prompt or not stat_prompt:
-            raise ValueError(f"❌ 無法讀取 prompt 檔案: eng={eng_prompt_file}, stat={stat_prompt_file}")
+            print(f"❌ 無法讀取 prompt 檔案: eng={eng_prompt_file}, stat={stat_prompt_file}")
+            return None, None
         
         return eng_prompt, stat_prompt
 
@@ -72,7 +68,7 @@ class GradingService:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-                print(f"✅ 成功讀取 prompt 檔案: {file_path}")
+                # print(f"✅ 成功讀取 prompt 檔案: {file_path}")
                 return content
         except Exception as e:
             print(f"❌ 讀取 prompt 檔案失敗: {file_path}, 錯誤: {e}")
@@ -133,19 +129,10 @@ class GradingService:
     @staticmethod
     async def generate_feedback(messages, model=None, temperature=1.0):
         """
-        非同步生成評分反饋（使用執行緒池避免阻塞事件循環）
-        
-        Args:
-            messages: ChatGPT 訊息列表
-            model: 使用的模型（可選）
-            temperature: 溫度參數（預設 1.0）
-        
-        Returns:
-            str: AI 生成的反饋內容
+        非同步生成評分反饋
         """
         loop = asyncio.get_event_loop()
         
-        # 在執行緒池中執行同步的 OpenAI API 呼叫
         feedback = await loop.run_in_executor(
             GradingService._executor,
             GradingService._generate_feedback_sync,
@@ -180,4 +167,3 @@ class GradingService:
         )
         with open(output_file, "w", encoding="utf-8") as f:
             f.write(full_html)
-

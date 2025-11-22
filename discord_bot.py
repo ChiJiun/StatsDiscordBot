@@ -7,12 +7,17 @@ from config import (
     UPLOADS_DIR,
     REPORTS_DIR,
     WELCOME_CHANNEL_ID,
+    NCUFN_CHANNEL_ID,
+    NCUEC_CHANNEL_ID,
+    CYCUIUBM_CHANNEL_ID,
+    ADMIN_CHANNEL_ID,
     NCUFN_ROLE_NAME,
     NCUEC_ROLE_NAME,
     CYCUIUBM_ROLE_NAME,
     NCUFN_ROLE_ID,
     NCUEC_ROLE_ID,
     CYCUIUBM_ROLE_ID,
+    ADMIN_ROLE_ID
 )
 from database import DatabaseManager
 from html_parser import extract_html_content, extract_html_title
@@ -29,8 +34,8 @@ class HomeworkBot:
         self.client = discord.Client(intents=intents)
         self.db = DatabaseManager()
         self.session = None
-        # 移除 grading_service 實例變數，因為現在都是靜態方法
         self.force_welcome = force_welcome
+        self.pending_login = {}  # 用於存儲正在進行登入流程的用戶狀態
 
         # 身分組對應班級名稱 - 改為英文
         self.role_to_class = {
@@ -39,10 +44,8 @@ class HomeworkBot:
             CYCUIUBM_ROLE_NAME: "CYCUIUBM",
         }
 
-        # 班級頻道 ID 設定 (需要在 config.py 中添加)
+        # 班級頻道 ID 設定
         try:
-            from config import NCUFN_CHANNEL_ID, NCUEC_CHANNEL_ID, CYCUIUBM_CHANNEL_ID
-
             self.class_channels = {
                 "NCUFN": NCUFN_CHANNEL_ID,
                 "NCUEC": NCUEC_CHANNEL_ID,
@@ -99,11 +102,8 @@ class HomeworkBot:
     async def _notify_administrators(self, title, description, error_details=None, severity="warning"):
         """發送通知給管理員"""
         try:
-            # 延遲匯入以避免循環導入
-            from config import ADMIN_CHANNEL_ID, ADMIN_ROLE_ID
-            
             if not ADMIN_CHANNEL_ID:
-                print("⚠️ 未設定管理員頻道 ID，跳過通知")
+                # print("⚠️ 未設定管理員頻道 ID，跳過通知")
                 return
                 
             channel = self.client.get_channel(ADMIN_CHANNEL_ID)
@@ -140,7 +140,6 @@ class HomeworkBot:
     async def on_ready(self):
         """機器人啟動時執行的事件處理器"""
         self.session = aiohttp.ClientSession()
-        # 移除 grading_service 初始化
         print(f"✅ HTML作業處理機器人已啟動: {self.client.user}")
 
         # 初始化班級資料
@@ -407,37 +406,6 @@ class HomeworkBot:
 
         # 添加管理員指令
         elif message.content.lower() == "!update-welcome" and message.author.guild_permissions.administrator:
-            # ... existing update-welcome logic ...
-            should_delete = True
-
-        # 處理 HTML 檔案上傳
-        elif message.attachments and any(att.filename.lower().endswith('.html') for att in message.attachments):
-            await self._process_html_file(message)
-            # HTML 檔案處理會在方法內部刪除訊息，所以這裡不設定 should_delete
-
-        # 其他所有訊息（包括非 HTML 附件、無效指令等）
-        else:
-            # 引導用戶使用正確的功能
-            await message.author.send(
-                "❓ **無效的指令或檔案**\n"
-                "❓ **Invalid command or file**\n\n"
-                "請使用以下功能：\n"
-                "Please use the following features:\n\n"
-                "• `!help` - 查看使用指南 / View guide\n"
-                "• `!my-submissions` - 查看作業記錄 / View submissions\n"
-                "• 📤 上傳 `.html` 檔案進行AI評分 / Upload `.html` file for AI grading"
-            )
-            should_delete = True
-
-        # 統一刪除訊息
-        if should_delete:
-            try:
-                await message.delete()
-            except (discord.Forbidden, discord.NotFound):
-                pass
-
-        # 添加管理員指令
-        elif message.content.lower() == "!update-welcome" and message.author.guild_permissions.administrator:
             try:
                 # 收集所有要更新的頻道（歡迎頻道 + 班級頻道）
                 all_channels = {"Welcome": WELCOME_CHANNEL_ID}
@@ -503,10 +471,27 @@ class HomeworkBot:
 
             should_delete = True
 
-        # 處理 HTML 檔案上傳
-        elif message.attachments and any(att.filename.lower().endswith('.html') for att in message.attachments):
-            await self._process_html_file(message)
-            # HTML 檔案處理會在方法內部刪除訊息，所以這裡不設定 should_delete
+        # ✅ 修正：處理 HTML 檔案上傳
+        elif message.attachments:
+            html_attachment = None
+            # 尋找是否有 HTML 檔案
+            for att in message.attachments:
+                if att.filename.lower().endswith('.html'):
+                    html_attachment = att
+                    break
+            
+            if html_attachment:
+                # ✅ 修正：傳遞正確的三個參數 (message, file, user_id)
+                await self._process_html_file(message, html_attachment, user_id)
+                # 這裡不需要 should_delete = True，因為 _process_html_file 內部會處理刪除
+            else:
+                # 如果有附件但都不是 HTML
+                await message.author.send(
+                    "📄 **檔案格式錯誤**\n"
+                    "請上傳 `.html` 格式的作業檔案。\n"
+                    "Please upload homework file in `.html` format."
+                )
+                should_delete = True
 
         # 其他所有訊息（包括非 HTML 附件、無效指令等）
         else:
@@ -565,13 +550,11 @@ class HomeworkBot:
                     pass
                 return
 
-            # 解析學生資料 - 根據實際返回結果調整
-            # get_student_by_discord_id 返回：(student_id, student_name, student_number, discord_id, class_id, class_name)
+            # 解析學生資料
             if len(student_data) == 6:
                 db_student_id, db_student_name, student_number, discord_id, class_id, class_name = student_data
             else:
                 await message.author.send(f"❌ 學生資料格式錯誤，欄位數量：{len(student_data)}")
-                # 刪除上傳訊息
                 try:
                     await message.delete()
                 except (discord.Forbidden, discord.NotFound):
@@ -581,32 +564,15 @@ class HomeworkBot:
             # 檢查 class_name 是否存在
             if not class_name:
                 await message.author.send("❌ 找不到您的班級資料\n" "❌ Cannot find your class data")
-                # 刪除上傳訊息
                 try:
                     await message.delete()
                 except (discord.Forbidden, discord.NotFound):
                     pass
                 return
 
-            # 建立安全的檔名
-            safe_class_name = self._get_safe_filename(class_name)
-
-            # 使用學號作為資料夾名稱，如果沒有學號則使用 student_id
-            folder_name = student_number if student_number else str(db_student_id)
-            safe_folder_name = self._get_safe_filename(folder_name)
-
-            # 設定上傳目錄
-            uploads_class_dir = os.path.join(UPLOADS_DIR, safe_class_name)
-            uploads_student_dir = os.path.join(uploads_class_dir, safe_folder_name)
-
-            # 設定報告目錄
-            reports_class_dir = os.path.join(REPORTS_DIR, safe_class_name)
-            reports_student_dir = os.path.join(reports_class_dir, safe_folder_name)
-
             # 確保目錄存在
-            os.makedirs(uploads_student_dir, exist_ok=True)
-            os.makedirs(reports_student_dir, exist_ok=True)
-
+            os.makedirs(UPLOADS_DIR, exist_ok=True)
+            
             # 解析 HTML 內容（先保存到臨時檔案）
             temp_path = os.path.join(UPLOADS_DIR, f"temp_{user_id}_{file.filename}")
             await file.save(temp_path)
@@ -619,12 +585,29 @@ class HomeworkBot:
             print(f"🆔 學號: {student_id_from_html}")
             print(f"📄 答案內容長度: {len(answer_text)} 字元")
 
-            # 使用 HTML 標題作為題目標題,如果沒有則使用檔案名稱
+            # 使用 HTML 標題作為題目標題
             question_title = html_title if html_title else file.filename
             print(f"📝 題目標題: {question_title}")
+            
+            # ✅ 新增：檢查是否有對應的 Prompt
+            eng_prompt, stat_prompt = GradingService.get_grading_prompts(html_title)
+            
+            # 如果沒有找到 Prompt (回傳 None)，發送尚未更新的訊息
+            if eng_prompt is None or stat_prompt is None:
+                await message.author.send(
+                    f"⚠️ **系統尚未更新此題目 / Topic Not Updated**\n\n"
+                    f"題目名稱：{html_title}\n"
+                    f"系統目前尚未設定此題目的評分標準，無法進行評分。\n"
+                    f"System has not updated grading criteria for this topic yet.\n\n"
+                    f"請確認您上傳的是正確的作業檔案，或稍後再試。"
+                )
+                print(f"🛑 題目 '{html_title}' 未設定 Prompt，停止處理")
+                os.remove(temp_path)
+                try: await message.delete()
+                except: pass
+                return
 
-            # ✅ 統一使用 Discord ID (user_id) 來查詢和儲存
-            # 因為 Discord ID 是唯一且不變的，比學號更可靠
+            # 取得嘗試次數
             max_attempt = self.db.get_max_attempt(user_id, question_title)
             attempt_number = max_attempt + 1
             print(f"🔄 嘗試次數: {attempt_number} (Discord ID: {user_id}, 題目: {question_title})")
@@ -639,38 +622,28 @@ class HomeworkBot:
                     "Please ensure the file contains complete answer area."
                 )
                 os.remove(temp_path)
+                try: await message.delete()
+                except: pass
                 return
 
-            # 建立安全的檔名
+            # 建立安全的檔名與路徑
             safe_class_name = self._get_safe_filename(class_name)
-
-            # 使用學號作為資料夾名稱，如果沒有學號則使用 student_id
             folder_name = student_number if student_number else str(db_student_id)
             safe_folder_name = self._get_safe_filename(folder_name)
 
-            # 設定上傳目錄
             uploads_class_dir = os.path.join(UPLOADS_DIR, safe_class_name)
             uploads_student_dir = os.path.join(uploads_class_dir, safe_folder_name)
-
-            # 設定報告目錄
             reports_class_dir = os.path.join(REPORTS_DIR, safe_class_name)
             reports_student_dir = os.path.join(reports_class_dir, safe_folder_name)
 
-            # 確保目錄存在
             os.makedirs(uploads_student_dir, exist_ok=True)
             os.makedirs(reports_student_dir, exist_ok=True)
 
-            # 保存上傳檔案（現在有 question_title 和 attempt_number）
+            # 保存上傳檔案
             save_path, drive_id = await FileHandler.save_upload_file(
-                file,
-                user_id,
-                uploads_student_dir,
-                file.filename,
-                class_name,
-                student_number or student_id_from_html,
-                db_student_name,
-                html_title,
-                attempt_number,
+                file, user_id, uploads_student_dir, file.filename,
+                class_name, student_number or student_id_from_html,
+                db_student_name, html_title, attempt_number,
             )
 
             # 檔案成功保存後才刪除上傳訊息
@@ -685,19 +658,11 @@ class HomeworkBot:
 
             if save_path is None:
                 await message.author.send("❌ 檔案保存失敗\n" "❌ File save failed")
-                
-                # 通知管理員 Google Drive 保存失敗
                 await self._notify_administrators(
-                    "Google Drive 上傳失敗 / Google Drive Upload Failed",
-                    f"檔案上傳到 Google Drive 失敗\nFile upload to Google Drive failed\n\n"
-                    f"• 用戶 / User: {db_student_name} ({student_number or student_id_from_html})\n"
-                    f"• 檔案 / File: {file.filename}\n"
-                    f"• 班級 / Class: {class_name}\n"
-                    f"• 題目 / Question: {html_title}",
-                    error_details=f"Local save path: {temp_path}",
+                    "Google Drive 上傳失敗",
+                    f"用戶: {db_student_name}\n檔案: {file.filename}\n班級: {class_name}",
                     severity="error"
                 )
-                
                 return
 
             # 發送處理中訊息
@@ -710,9 +675,6 @@ class HomeworkBot:
             )
 
             try:
-                # 獲取評分提示詞
-                eng_prompt, stat_prompt = GradingService.get_grading_prompts(html_title)
-                
                 # 更新進度
                 await processing_msg.edit(content=
                     f"🔄 **正在處理您的作業 / Processing Your Homework**\n\n"
@@ -722,13 +684,12 @@ class HomeworkBot:
                     f"📖 English grading in progress..."
                 )
                 
-                # 執行英語評分 - 現在是非同步的！
+                # 執行英語評分
                 messages_eng = GradingService.create_messages(eng_prompt, db_student_name, answer_text)
                 eng_feedback = await asyncio.wait_for(
                     GradingService.generate_feedback(messages_eng),
                     timeout=60.0
                 )
-
                 print(f"✅ 英語評分完成")
                 
                 # 更新進度
@@ -741,13 +702,12 @@ class HomeworkBot:
                     f"📊 Statistics grading in progress..."
                 )
 
-                # 執行統計評分 - 現在是非同步的！
+                # 執行統計評分
                 messages_stat = GradingService.create_messages(stat_prompt, db_student_name, answer_text)
                 stats_feedback = await asyncio.wait_for(
                     GradingService.generate_feedback(messages_stat),
-                    timeout=60.0  # 60 秒超時
+                    timeout=60.0
                 )
-
                 print(f"✅ 統計評分完成")
                 
                 # 更新進度
@@ -763,19 +723,7 @@ class HomeworkBot:
 
             except asyncio.TimeoutError:
                 await processing_msg.edit(content="⏱️ AI評分超時，請稍後再試。\n⏱️ AI grading timeout, please try again later.")
-                
-                # 通知管理員 AI 評分超時
-                await self._notify_administrators(
-                    "AI 評分超時 / AI Grading Timeout",
-                    f"AI 評分處理超時\nAI grading process timed out\n\n"
-                    f"• 用戶 / User: {db_student_name} ({student_number or student_id_from_html})\n"
-                    f"• 題目 / Question: {html_title}\n"
-                    f"• 嘗試次數 / Attempt: {attempt_number}\n"
-                    f"• 班級 / Class: {class_name}",
-                    severity="warning"
-                )
-                
-                print(f"❌ AI評分超時: {html_title}")
+                await self._notify_administrators("AI 評分超時", f"用戶: {db_student_name}\n題目: {html_title}", severity="warning")
                 return
             except Exception as e:
                 await processing_msg.edit(content=f"❌ AI評分失敗: {e}\n❌ AI grading failed: {e}")
@@ -784,11 +732,7 @@ class HomeworkBot:
                 traceback.print_exc()
                 return
 
-            # 解析評分結果
-            eng_feedback_clean = eng_feedback
-            stats_feedback_clean = stats_feedback
-
-            # 生成並保存報告（添加超時控制）
+            # 生成並保存報告
             try:
                 report_path, report_filename, report_drive_id = await asyncio.wait_for(
                     FileHandler.generate_and_save_report(
@@ -798,8 +742,8 @@ class HomeworkBot:
                         question_title=html_title,
                         attempt_number=attempt_number,
                         answer_text=answer_text,
-                        eng_feedback_clean=eng_feedback_clean,
-                        stats_feedback_clean=stats_feedback_clean,
+                        eng_feedback_clean=eng_feedback,
+                        stats_feedback_clean=stats_feedback,
                         reports_student_dir=reports_student_dir,
                         class_name=class_name,
                         student_id=student_number or student_id_from_html,
@@ -808,33 +752,20 @@ class HomeworkBot:
                 )
             except asyncio.TimeoutError:
                 await processing_msg.edit(content="⏱️ 報告生成超時，請聯繫管理員。\n⏱️ Report generation timeout, please contact admin.")
-                
-                # 通知管理員報告生成超時
-                await self._notify_administrators(
-                    "報告生成超時 / Report Generation Timeout",
-                    f"報告生成處理超時\nReport generation process timed out\n\n"
-                    f"• 用戶 / User: {db_student_name} ({student_number or student_id_from_html})\n"
-                    f"• 題目 / Question: {html_title}\n"
-                    f"• 嘗試次數 / Attempt: {attempt_number}\n"
-                    f"• 班級 / Class: {class_name}",
-                    severity="warning"
-                )
-                
-                print(f"❌ 報告生成超時: {html_title}")
+                await self._notify_administrators("報告生成超時", f"用戶: {db_student_name}\n題目: {html_title}", severity="warning")
                 return
 
             if not report_path:
                 await processing_msg.edit(content="❌ 生成報告失敗\n❌ Report generation failed")
                 return
 
-            # ========== 新增：將提交記錄寫入資料庫 ==========
+            # 將提交記錄寫入資料庫
             print(f"💾 正在將提交記錄寫入資料庫...")
             try:
-                # ✅ 修正參數名稱，與 database.py 的方法定義一致
                 db_insert_success = self.db.insert_submission(
-                    discord_id=user_id,  # ✅ Discord ID（查詢鍵）
+                    discord_id=user_id,
                     student_name=db_student_name,
-                    student_number=student_number or student_id_from_html,  # ✅ 學號（僅供顯示）
+                    student_number=student_number or student_id_from_html,
                     question_title=html_title,
                     attempt_number=attempt_number,
                     html_path=report_path
@@ -842,50 +773,17 @@ class HomeworkBot:
                 
                 if db_insert_success:
                     print(f"✅ 提交記錄已成功寫入資料庫")
-                    print(f"   - Discord ID: {user_id}")
-                    print(f"   - 學號: {student_number or student_id_from_html}")
-                    print(f"   - 題目: {html_title}")
-                    print(f"   - 嘗試次數: {attempt_number}")
                 else:
-                    print(f"⚠️ 提交記錄寫入資料庫失敗（方法返回 False）")
-                    # 即使資料庫寫入失敗，仍繼續發送報告給用戶
+                    print(f"⚠️ 提交記錄寫入資料庫失敗")
                     
-            except TypeError as type_error:
-                print(f"❌ 參數類型錯誤: {type_error}")
-                import traceback
-                traceback.print_exc()
-                await processing_msg.edit(
-                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生參數錯誤\n"
-                            f"⚠️ Report generated, but database write parameter error occurred\n"
-                            f"錯誤訊息 / Error: {type_error}\n\n"
-                            f"請聯繫管理員檢查系統設定"
-                )
             except Exception as db_error:
                 print(f"❌ 資料庫寫入錯誤: {db_error}")
-                
-                # 通知管理員資料庫寫入失敗
-                await self._notify_administrators(
-                    "資料庫寫入失敗 / Database Write Failed", 
-                    f"提交記錄寫入資料庫失敗\nSubmission record database write failed\n\n"
-                    f"• 用戶 / User: {db_student_name} ({student_number or student_id_from_html})\n"
-                    f"• 題目 / Question: {html_title}\n"
-                    f"• 嘗試次數 / Attempt: {attempt_number}\n"
-                    f"• 班級 / Class: {class_name}\n"
-                    f"• 報告路徑 / Report Path: {report_path}",
-                    error_details=db_error,
-                    severity="error"
-                )
-                
-                import traceback
-                traceback.print_exc()
-                # 即使資料庫寫入失敗，仍繼續發送報告給用戶
+                await self._notify_administrators("資料庫寫入失敗", f"用戶: {db_student_name}\n題目: {html_title}\n錯誤: {db_error}", severity="error")
                 await processing_msg.edit(
                     content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生錯誤\n"
                             f"⚠️ Report generated, but database write error occurred\n"
                             f"錯誤訊息 / Error: {db_error}"
                 )
-            
-            # ========== 結束資料庫寫入 ==========
 
             # 更新進度訊息
             await processing_msg.edit(content=
@@ -940,10 +838,8 @@ class HomeworkBot:
             print(f"❌ 處理檔案時發生錯誤: {e}")
             import traceback
             traceback.print_exc()
-
             await message.author.send(f"❌ 處理檔案時發生錯誤 / Error processing file: {e}")
-            
-            # 清理：如果已保存檔案但處理失敗，嘗試刪除
+            # 清理
             try:
                 if "save_path" in locals() and os.path.exists(save_path):
                     os.remove(save_path)
@@ -1213,24 +1109,6 @@ class HomeworkBot:
         except Exception as e:
             await user.send(f"⚠️ 分配身分組時發生錯誤：{e}")
 
-    def _extract_question_number(self, filename, html_title):
-        """從檔案名稱或標題提取題目編號"""
-        import re
-
-        # 嘗試從檔案名稱提取
-        filename_match = re.search(r"(\d+)", filename)
-        if filename_match:
-            return int(filename_match.group(1))
-
-        # 嘗試從HTML標題提取
-        if html_title:
-            title_match = re.search(r"(\d+)", html_title)
-            if title_match:
-                return int(title_match.group(1))
-
-        # 預設返回1
-        return 1
-
     def _get_user_class_from_roles(self, member):
         """根據用戶的 Discord 身分組獲取對應的班級名稱"""
         if not member:
@@ -1373,7 +1251,7 @@ class HomeworkBot:
                         f"如果這是您的帳號，請聯繫管理員處理\n"
                         f"If this is your account, please contact administrator"
                     )
-                    return False
+                return False
             else:
                 # Discord ID 為空值，可以直接綁定
                 print(f"✅ 學號的 Discord ID 為空值，可以進行綁定")
@@ -1517,16 +1395,6 @@ class HomeworkBot:
             if guild is None or not hasattr(member, "add_roles"):
                 return
 
-            # 延遲匯入 config 以避免循環導入
-            from config import (
-                NCUFN_ROLE_ID,
-                NCUEC_ROLE_ID,
-                CYCUIUBM_ROLE_ID,
-                NCUFN_ROLE_NAME,
-                NCUEC_ROLE_NAME,
-                CYCUIUBM_ROLE_NAME,
-            )
-
             mapping = {
                 "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
                 "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
@@ -1539,6 +1407,12 @@ class HomeworkBot:
                     f"• 輸入的類型 / Input: `{role_type}`\n"
                     f"• 可用的類型 / Available types: `NCUFN`, `NCUEC`, `CYCUIUBM`"
                 )
+                try:
+                    await message.delete()
+                except discord.Forbidden:
+                    print("無權限刪除訊息 / No permission to delete message")
+                except discord.NotFound:
+                    print("訊息已被刪除 / Message already deleted")
                 return
 
             role_id, role_name = mapping[role_type]
@@ -1574,6 +1448,13 @@ class HomeworkBot:
                     f"💡 如果需要更改身分組，請聯繫管理員\n"
                     f"💡 If you need to change your role, please contact an administrator"
                 )
+                # 刪除訊息後返回
+                try:
+                    await message.delete()
+                except discord.Forbidden:
+                    print("無權限刪除訊息 / No permission to delete message")
+                except discord.NotFound:
+                    print("訊息已被刪除 / Message already deleted")
                 return
 
             await member.add_roles(role, reason="User requested role join")
@@ -1593,6 +1474,14 @@ class HomeworkBot:
                 print("訊息已被刪除 / Message already deleted")
 
         except Exception as e:
+            # 發生錯誤時也刪除訊息
+            try:
+                await message.delete()
+            except discord.Forbidden:
+                print("無權限刪除訊息 / No permission to delete message")
+            except discord.NotFound:
+                print("訊息已被刪除 / Message already deleted")
+        
             await message.author.send(
                 f"❌ **處理身分組時發生錯誤 / Error Processing Role**\n\n"
                 f"• 錯誤訊息 / Error Message: {e}\n"
@@ -1706,56 +1595,3 @@ class HomeworkBot:
             print(f"❌ _show_my_submissions 錯誤: {e}")
             import traceback
             traceback.print_exc()
-
-    async def _show_user_roles(self, message):
-        """顯示用戶的身分組資訊"""
-        try:
-            user_id = str(message.author.id)
-            member = message.guild.get_member(message.author.id)
-            
-            # 獲取學生資料
-            student_data = self.db.get_student_by_discord_id(user_id)
-            
-            if not student_data:
-                await message.author.send(
-                    "❌ 找不到您的學生資料 / Cannot find your student data\n\n"
-                    "請先使用以下任一方式登入：\n"
-                    "Please login first using one of the following methods:\n\n"
-                    "• `!join 學校代碼` - 選擇學校身分\n"
-                    "• `!login 學號 密碼` - 使用學號密碼登入"
-                )
-            else:
-                # 解析學生資料
-                if len(student_data) >= 6:
-                    db_student_id, db_student_name, student_number, discord_id, class_id, class_name = student_data
-                    
-                    # 獲取 Discord 身分組
-                    user_roles = [role.name for role in member.roles if role.name != "@everyone"]
-                    
-                    response = (
-                        f"👤 **您的身分資訊 / Your Identity Info**\n\n"
-                        f"📛 姓名 / Name：{db_student_name}\n"
-                        f"🆔 學號 / Student ID：{student_number}\n"
-                        f"🏫 班級 / Class：{class_name}\n"
-                        f"🔗 Discord ID：{discord_id}\n\n"
-                        f"🎭 **Discord 身分組 / Discord Roles**：\n"
-                    )
-                    
-                    if user_roles:
-                        for role in user_roles:
-                            response += f"• {role}\n"
-                    else:
-                        response += "• 無特殊身分組 / No special roles\n"
-                    
-                    await message.author.send(response)
-                else:
-                    await message.author.send("❌ 學生資料格式錯誤")
-            
-            try:
-                await message.delete()
-            except:
-                pass
-                
-        except Exception as e:
-            await message.author.send(f"❌ 查詢身分資訊時發生錯誤 / Error querying identity：{e}")
-            print(f"❌ _show_user_roles 錯誤: {e}")
