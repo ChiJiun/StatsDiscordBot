@@ -48,12 +48,6 @@ DB_PATH = "homework.db"
 # 目錄設定
 PROMPTS_DIR = "prompts"  # 提示檔案存放目錄
 
-# 預設 Prompt 檔案路徑配置
-DEFAULT_PROMPTS = {
-    "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-    "statistics": os.path.join(PROMPTS_DIR, "Stats_prompt.txt")
-}
-
 # 特定題目的 Prompt 檔案路徑配置（必須是字典格式，包含 english 和 statistics）
 SPECIFIC_PROMPTS = {
     "Age and Viewing Habits 考卷": {
@@ -66,15 +60,19 @@ SPECIFIC_PROMPTS = {
     },
     "SOCS_S-M ratio": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio_Stats_prompt.txt")
+        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio.txt")
     },
     "SOCS_S-M ratio-2": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio_Stats_prompt.txt")
+        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio.txt")
     },
     "Four-Step_Simulation of random guessing": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Simulation_Stats_prompt.txt")
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Simulation.txt")
+    },
+    "Four-Step_Proportion_App or in-store": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Proportion.txt")
     }
 }
 
