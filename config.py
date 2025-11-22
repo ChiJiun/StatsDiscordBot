@@ -46,7 +46,7 @@ CYCUIUBM_ROLE_ID = int(os.getenv("CYCUIUBM_ROLE_ID", 0))  # 可選：CYCUIUBM �
 DB_PATH = "homework.db"
 
 # 目錄設定
-PROMPTS_DIR = "prompts"  # 提示檔案存放目錄
+PROMPTS_DIR = os.path.join(BASE_DIR, "prompts")
 
 # 特定題目的 Prompt 檔案路徑配置（必須是字典格式，包含 english 和 statistics）
 SPECIFIC_PROMPTS = {
