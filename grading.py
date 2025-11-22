@@ -47,7 +47,7 @@ class GradingService:
         stat_prompt = GradingService._read_prompt_file(stat_prompt_file)
         
         if not eng_prompt or not stat_prompt:
-            print(f"❌ 無法讀取 prompt 檔案: eng={eng_prompt_file}, stat={stat_prompt_file}")
+            print(f"❌ 無法讀取 prompt 檔案: {eng_prompt_file}, {stat_prompt_file}")
             return None, None
         
         return eng_prompt, stat_prompt
