@@ -11,8 +11,8 @@ from config import OPENAI_API_KEY, MODEL, SPECIFIC_PROMPTS
 
 
 class GradingService:
-    # 添加線程池執行器（類別層級）
-    _executor = ThreadPoolExecutor(max_workers=2)
+    # ✅ 修改 1: 增加執行緒數量，避免一兩個卡住就全掛
+    _executor = ThreadPoolExecutor(max_workers=5)
     
     @staticmethod
     def get_grading_prompts(question_title=None):
@@ -25,7 +25,7 @@ class GradingService:
         if not question_title:
             return None, None
         
-        # ✅ 修改：嚴格檢查，只有在 SPECIFIC_PROMPTS 有定義時才回傳
+        # 檢查是否有該題目的特定 prompt
         if question_title in SPECIFIC_PROMPTS:
             prompt_config = SPECIFIC_PROMPTS[question_title]
             
@@ -38,7 +38,6 @@ class GradingService:
                 print(f"⚠️ 警告：題目 '{question_title}' 的 prompt 配置格式錯誤")
                 return None, None
         else:
-            # ❌ 如果找不到特定 prompt，直接返回 None，不使用預設值
             print(f"ℹ️ 題目 '{question_title}' 尚未設定 Prompt，停止評分")
             return None, None
         
@@ -47,7 +46,7 @@ class GradingService:
         stat_prompt = GradingService._read_prompt_file(stat_prompt_file)
         
         if not eng_prompt or not stat_prompt:
-            print(f"❌ 無法讀取 prompt 檔案: {eng_prompt_file}, {stat_prompt_file}")
+            print(f"❌ 無法讀取 prompt 檔案: eng={eng_prompt_file}, stat={stat_prompt_file}")
             return None, None
         
         return eng_prompt, stat_prompt
@@ -56,10 +55,6 @@ class GradingService:
     def _read_prompt_file(file_path):
         """
         Read prompt content from file
-        Args:
-            file_path (str): Path to the prompt file
-        Returns:
-            str: Content of the prompt file
         """
         if not file_path or not os.path.exists(file_path):
             print(f"❌ Prompt 檔案不存在: {file_path}")
@@ -68,7 +63,6 @@ class GradingService:
         try:
             with open(file_path, 'r', encoding='utf-8') as f:
                 content = f.read()
-                # print(f"✅ 成功讀取 prompt 檔案: {file_path}")
                 return content
         except Exception as e:
             print(f"❌ 讀取 prompt 檔案失敗: {file_path}, 錯誤: {e}")
@@ -119,9 +113,13 @@ class GradingService:
             response = openai.ChatCompletion.create(
                 model=model,
                 messages=messages,
-                temperature=temperature
+                temperature=temperature,
+                request_timeout=110  # 設定超時
             )
             return response.choices[0].message.content
+        except openai.error.Timeout as e:
+            print(f"❌ OpenAI API 超時: {e}")
+            raise  # 重新拋出，讓上層處理
         except Exception as e:
             print(f"❌ OpenAI API 呼叫失敗: {e}")
             raise

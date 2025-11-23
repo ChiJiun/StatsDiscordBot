@@ -2,10 +2,15 @@ import os
 import discord
 import aiohttp
 import asyncio
+import traceback
+import openai  # ✅ 新增：導入 openai 以便捕獲異常
+import time  # 在文件開頭添加
+
 from config import (
     DISCORD_TOKEN,
     UPLOADS_DIR,
     REPORTS_DIR,
+    REPORTS_FOLDER_ID,
     WELCOME_CHANNEL_ID,
     NCUFN_CHANNEL_ID,
     NCUEC_CHANNEL_ID,
@@ -23,6 +28,7 @@ from database import DatabaseManager
 from html_parser import extract_html_content, extract_html_title
 from grading import GradingService
 from file_handler import FileHandler
+from report_generator import generate_html_report
 
 
 class HomeworkBot:
@@ -291,7 +297,7 @@ class HomeworkBot:
                 "🏫 **請前往您的班級專屬頻道進行以下操作：**\n"
                 "🏫 **Please go to your class channel for the following operations:**\n\n"
                 "• 使用 `!help` 查看完整功能說明 / Use `!help` to view complete instructions\n"
-                "• 使用 `!join 學校代碼` 選擇學校身分 / Use `!join school_code` to choose school identity\n"
+                "• 使用 `!join 學校身分` 選擇學校身分 / Use `!join school_identity` to choose school identity\n"
                 "• 📤 上傳 HTML 作業檔案進行評分 / Upload HTML homework file for grading\n"
                 "• 使用其他系統功能 / Use other system features"
             )
@@ -561,15 +567,6 @@ class HomeworkBot:
                     pass
                 return
 
-            # 檢查 class_name 是否存在
-            if not class_name:
-                await message.author.send("❌ 找不到您的班級資料\n" "❌ Cannot find your class data")
-                try:
-                    await message.delete()
-                except (discord.Forbidden, discord.NotFound):
-                    pass
-                return
-
             # 確保目錄存在
             os.makedirs(UPLOADS_DIR, exist_ok=True)
             
@@ -641,9 +638,15 @@ class HomeworkBot:
 
             # 保存上傳檔案
             save_path, drive_id = await FileHandler.save_upload_file(
-                file, user_id, uploads_student_dir, file.filename,
-                class_name, student_number or student_id_from_html,
-                db_student_name, html_title, attempt_number,
+                file, 
+                user_id, 
+                uploads_student_dir, 
+                file.filename,
+                html_title,  # ✅ 添加 question_title (html_title)
+                class_name, 
+                student_number or student_id_from_html,
+                db_student_name, 
+                attempt_number,
             )
 
             # 檔案成功保存後才刪除上傳訊息
@@ -674,6 +677,9 @@ class HomeworkBot:
                 f"⏳ Please wait, AI grading in progress..."
             )
 
+            # ✅ 記錄開始時間
+            start_time = time.time()
+
             try:
                 # 更新進度
                 await processing_msg.edit(content=
@@ -684,167 +690,151 @@ class HomeworkBot:
                     f"📖 English grading in progress..."
                 )
                 
+                # ✅ 英語評分開始時間
+                eng_start = time.time()
+                
                 # 執行英語評分
                 messages_eng = GradingService.create_messages(eng_prompt, db_student_name, answer_text)
                 eng_feedback = await asyncio.wait_for(
                     GradingService.generate_feedback(messages_eng),
-                    timeout=60.0
+                    timeout=120.0
                 )
-                print(f"✅ 英語評分完成")
+                
+                # ✅ 計算英語評分用時
+                eng_duration = time.time() - eng_start
+                print(f"✅ 英語評分完成 (用時: {eng_duration:.2f}秒)")
                 
                 # 更新進度
                 await processing_msg.edit(content=
                     f"🔄 **正在處理您的作業 / Processing Your Homework**\n\n"
                     f"📝 題目 / Question：{html_title}\n"
                     f"🔢 第 {attempt_number} 次提交 / Submission #{attempt_number}\n"
-                    f"✅ 英語評分完成\n"
+                    f"✅ 英語評分完成 ({eng_duration:.1f}秒)\n"
                     f"📊 正在進行統計評分...\n"
                     f"📊 Statistics grading in progress..."
                 )
 
+                # ✅ 統計評分開始時間
+                stat_start = time.time()
+                
                 # 執行統計評分
                 messages_stat = GradingService.create_messages(stat_prompt, db_student_name, answer_text)
                 stats_feedback = await asyncio.wait_for(
                     GradingService.generate_feedback(messages_stat),
-                    timeout=60.0
+                    timeout=120.0
                 )
-                print(f"✅ 統計評分完成")
+                
+                # ✅ 計算統計評分用時
+                stat_duration = time.time() - stat_start
+                print(f"✅ 統計評分完成 (用時: {stat_duration:.2f}秒)")
                 
                 # 更新進度
                 await processing_msg.edit(content=
                     f"🔄 **正在處理您的作業 / Processing Your Homework**\n\n"
                     f"📝 題目 / Question：{html_title}\n"
                     f"🔢 第 {attempt_number} 次提交 / Submission #{attempt_number}\n"
-                    f"✅ 英語評分完成\n"
-                    f"✅ 統計評分完成\n"
+                    f"✅ 英語評分完成 ({eng_duration:.1f}秒)\n"
+                    f"✅ 統計評分完成 ({stat_duration:.1f}秒)\n"
                     f"📄 正在生成報告...\n"
                     f"📄 Generating report..."
                 )
-
-            except asyncio.TimeoutError:
-                await processing_msg.edit(content="⏱️ AI評分超時，請稍後再試。\n⏱️ AI grading timeout, please try again later.")
-                await self._notify_administrators("AI 評分超時", f"用戶: {db_student_name}\n題目: {html_title}", severity="warning")
-                return
-            except Exception as e:
-                await processing_msg.edit(content=f"❌ AI評分失敗: {e}\n❌ AI grading failed: {e}")
-                print(f"❌ AI評分錯誤: {e}")
-                import traceback
-                traceback.print_exc()
-                return
-
-            # 生成並保存報告
-            try:
-                report_path, report_filename, report_drive_id = await asyncio.wait_for(
-                    FileHandler.generate_and_save_report(
-                        db_student_name=db_student_name,
-                        student_number=student_number,
-                        student_id_from_html=student_id_from_html,
-                        question_title=html_title,
-                        attempt_number=attempt_number,
-                        answer_text=answer_text,
-                        eng_feedback_clean=eng_feedback,
-                        stats_feedback_clean=stats_feedback,
-                        reports_student_dir=reports_student_dir,
-                        class_name=class_name,
-                        student_id=student_number or student_id_from_html,
-                    ),
-                    timeout=60.0
-                )
-            except asyncio.TimeoutError:
-                await processing_msg.edit(content="⏱️ 報告生成超時，請聯繫管理員。\n⏱️ Report generation timeout, please contact admin.")
-                await self._notify_administrators("報告生成超時", f"用戶: {db_student_name}\n題目: {html_title}", severity="warning")
-                return
-
-            if not report_path:
-                await processing_msg.edit(content="❌ 生成報告失敗\n❌ Report generation failed")
-                return
-
-            # 將提交記錄寫入資料庫
-            print(f"💾 正在將提交記錄寫入資料庫...")
-            try:
-                db_insert_success = self.db.insert_submission(
-                    discord_id=user_id,
-                    student_name=db_student_name,
-                    student_number=student_number or student_id_from_html,
+                
+                # ✅ 修正：使用 FileHandler.generate_and_save_report
+                report_path, report_filename, report_drive_id = await FileHandler.generate_and_save_report(
+                    db_student_name=db_student_name,
+                    student_number=student_number,
+                    student_id_from_html=student_id_from_html,
                     question_title=html_title,
                     attempt_number=attempt_number,
-                    html_path=report_path
+                    answer_text=answer_text,
+                    eng_feedback_clean=eng_feedback,
+                    stats_feedback_clean=stats_feedback,
+                    reports_student_dir=reports_student_dir,
+                    class_name=class_name,
+                    student_id=student_number or student_id_from_html,
+                )
+
+                if not report_path or not report_drive_id:
+                    await processing_msg.edit(content="❌ 報告生成失敗 / Report generation failed")
+                    return
+                
+                # ✅ 計算總用時
+                total_duration = time.time() - start_time
+                
+                # 發送完成訊息（包含用時資訊）
+                await processing_msg.edit(content=
+                    f"✅ **作業處理完成 / Homework Processing Complete**\n\n"
+                    f"📝 題目 / Question：{html_title}\n"
+                    f"🔢 第 {attempt_number} 次提交 / Submission #{attempt_number}\n"
+                    f"✅ 英語評分完成 ({eng_duration:.1f}秒)\n"
+                    f"✅ 統計評分完成 ({stat_duration:.1f}秒)\n"
+                    f"✅ 報告已生成\n"
+                    f"⏱️ 總處理時間 / Total time：{total_duration:.1f} 秒\n\n"
+                    f"📊 評分報告已保存，您可以使用 `!my-submissions` 查看所有提交記錄\n"
+                    f"📊 Grading report saved, use `!my-submissions` to view all submissions"
                 )
                 
-                if db_insert_success:
-                    print(f"✅ 提交記錄已成功寫入資料庫")
-                else:
-                    print(f"⚠️ 提交記錄寫入資料庫失敗")
-                    
-            except Exception as db_error:
-                print(f"❌ 資料庫寫入錯誤: {db_error}")
-                await self._notify_administrators("資料庫寫入失敗", f"用戶: {db_student_name}\n題目: {html_title}\n錯誤: {db_error}", severity="error")
-                await processing_msg.edit(
-                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生錯誤\n"
-                            f"⚠️ Report generated, but database write error occurred\n"
-                            f"錯誤訊息 / Error: {db_error}"
-                )
-
-            # 更新進度訊息
-            await processing_msg.edit(content=
-                f"✅ **作業處理完成 / Homework Processing Complete**\n\n"
-                f"📝 題目 / Question：{html_title}\n"
-                f"🔢 第 {attempt_number} 次提交 / Submission #{attempt_number}\n"
-                f"✅ 英語評分完成\n"
-                f"✅ 統計評分完成\n"
-                f"✅ 報告生成完成\n"
-                f"💾 資料已記錄\n"
-                f"📤 正在發送結果..."
-            )
-
-            # 發送結果
-            result_text = (
-                f"🎉 **作業評分完成 / Homework Grading Complete**\n\n"
-                f"👤 **學生 / Student**：{db_student_name}\n"
-                f"🆔 **學號 / Student ID**：{student_number or student_id_from_html}\n"
-                f"📝 **題目 / Question**：{html_title}\n"
-                f"🔢 **提交次數 / Submission**：第 {attempt_number} 次 / #{attempt_number}\n\n"
-                f"📊 您可以使用 `!my-submissions` 查看所有作業記錄\n"
-                f"📊 Use `!my-submissions` to view all submission records"
-            )
-
-            await message.author.send(result_text)
-
-            # 發送報告檔案
-            try:
-                with open(report_path, "rb") as f:
+                # 發送報告文件
+                with open(report_path, 'rb') as f:
                     await message.author.send(
-                        f"📄 **詳細評分報告 / Detailed Grading Report**\n"
-                        f"完整的評分分析和改進建議請參考附件\n"
-                        f"Please refer to the attachment for complete grading analysis and improvement suggestions",
-                        file=discord.File(f, report_filename),
+                        f"📄 **評分報告 / Grading Report**",
+                        file=discord.File(f, filename=report_filename)
                     )
-                print(f"✅ 已發送結果給用戶")
-            except Exception as send_error:
-                print(f"❌ 發送報告檔案失敗: {send_error}")
-                await message.author.send(
-                    f"⚠️ 報告已生成但發送失敗\n"
-                    f"⚠️ Report generated but sending failed\n"
-                    f"檔案位置 / File location: {report_path}"
-                )
 
-            # 刪除處理中訊息
-            try:
-                await processing_msg.delete()
-            except:
-                pass
+            except (asyncio.TimeoutError, openai.error.Timeout) as e:
+                # ✅ 超時錯誤也顯示已用時間
+                elapsed_time = time.time() - start_time
+                print(f"⏱️ 捕獲到超時錯誤: {type(e).__name__} (已用時: {elapsed_time:.2f}秒)")
+                
+                await processing_msg.edit(content=
+                    f"⏱️ AI評分連線超時，請稍後再試。\n"
+                    f"⏱️ AI grading connection timed out, please try again later.\n\n"
+                    f"已處理時間 / Elapsed time：{elapsed_time:.1f} 秒"
+                )
+                
+                await self._notify_administrators(
+                    "AI 評分超時", 
+                    f"用戶: {db_student_name}\n題目: {html_title}\n錯誤類型: {type(e).__name__}\n已用時: {elapsed_time:.1f}秒", 
+                    severity="warning"
+                )
+                
+                # 清理暫存檔
+                try:
+                    if os.path.exists(save_path):
+                        os.remove(save_path)
+                except:
+                    pass
+                return
+
+            except openai.error.InvalidRequestError as e:
+                # 新增：處理無效請求錯誤
+                print(f"❌ OpenAI API 請求錯誤: {e}")
+                await processing_msg.edit(content=f"❌ API 請求錯誤 / API Request Error：{e}")
+                
+                await self._notify_administrators(
+                    "OpenAI API 請求錯誤",
+                    f"用戶: {db_student_name}\n題目: {html_title}\n錯誤: {e}",
+                    severity="error"
+                )
+                return
+
+            except Exception as e:
+                await processing_msg.edit(content=f"❌ 評分過程發生錯誤 / Error during grading：{e}")
+                print(f"❌ AI評分錯誤: {e}")
+                traceback.print_exc()
+                
+                await self._notify_administrators(
+                    "AI 評分錯誤",
+                    f"用戶: {db_student_name}\n題目: {html_title}",
+                    error_details=str(e),
+                    severity="error"
+                )
+                return
 
         except Exception as e:
-            print(f"❌ 處理檔案時發生錯誤: {e}")
-            import traceback
+            await message.author.send(f"❌ 處理檔案時發生錯誤 / Error processing file：{e}")
+            print(f"❌ _process_html_file 錯誤: {e}")
             traceback.print_exc()
-            await message.author.send(f"❌ 處理檔案時發生錯誤 / Error processing file: {e}")
-            # 清理
-            try:
-                if "save_path" in locals() and os.path.exists(save_path):
-                    os.remove(save_path)
-            except:
-                pass
 
     async def on_close(self):
         """機器人關閉時的清理工作"""
@@ -1585,6 +1575,7 @@ class HomeworkBot:
                 
                 await message.author.send(response)
             
+                       
             try:
                 await message.delete()
             except:

@@ -7,7 +7,7 @@ load_dotenv()
 # Discord 和 OpenAI 設定
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4o-mini"
+MODEL = "gpt-5-mini"
 
 # Google Drive 設定（OAuth2）
 UPLOADS_FOLDER_ID = os.getenv("UPLOADS_FOLDER_ID")
