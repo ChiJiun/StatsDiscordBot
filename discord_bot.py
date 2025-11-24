@@ -3,8 +3,8 @@ import discord
 import aiohttp
 import asyncio
 import traceback
-import openai  # ✅ 新增：導入 openai 以便捕獲異常
-import time  # 在文件開頭添加
+import openai
+import time
 
 from config import (
     DISCORD_TOKEN,
@@ -41,7 +41,6 @@ class HomeworkBot:
         self.db = DatabaseManager()
         self.session = None
         self.force_welcome = force_welcome
-        self.pending_login = {}  # 用於存儲正在進行登入流程的用戶狀態
 
         # 身分組對應班級名稱 - 改為英文
         self.role_to_class = {
@@ -283,12 +282,12 @@ class HomeworkBot:
         # 中央化訊息刪除邏輯 - 除了機器人歡迎訊息外，刪除所有處理過的訊息
         should_delete = False
 
-        # 檢查是否為私訊 - 直接引導到班級頻道
+        # ✅ 修改：檢查是否為私訊
         if isinstance(message.channel, discord.DMChannel):
-            # 檢查是否為登入步驟（保留原有登入功能）
-            if hasattr(self, "pending_login") and int(user_id) in self.pending_login:
-                if await self._handle_login_step(message):
-                    return
+            # ✅ 新增：允許在私訊中使用 !login 指令
+            if message.content.lower().startswith("!login"):
+                await self._handle_password_login(message)
+                return
 
             # 對於其他私訊，引導用戶到班級頻道
             await message.author.send(
@@ -298,8 +297,9 @@ class HomeworkBot:
                 "🏫 **Please go to your class channel for the following operations:**\n\n"
                 "• 使用 `!help` 查看完整功能說明 / Use `!help` to view complete instructions\n"
                 "• 使用 `!join 學校身分` 選擇學校身分 / Use `!join school_identity` to choose school identity\n"
+                "💡 **您可以在私訊中使用 `!login 學號 密碼` 登入系統**\n"
+                "💡 **You can use `!login student_id password` in DM to login**"
                 "• 📤 上傳 HTML 作業檔案進行評分 / Upload HTML homework file for grading\n"
-                "• 使用其他系統功能 / Use other system features"
             )
             return
 
@@ -649,6 +649,23 @@ class HomeworkBot:
                 attempt_number,
             )
 
+            if save_path is None:
+                # 本地保存失敗
+                await self._notify_administrators(
+                    "本地保存失敗",
+                    f"用戶: {db_student_name}\n檔案: {file.filename}\n班級: {class_name}\n本地路徑: {save_path}",
+                    severity="warning"
+                )
+                return
+
+            if drive_id is None:
+                # Google Drive 上傳失敗
+                await self._notify_administrators(
+                    "Google Drive 上傳失敗",
+                    f"用戶: {db_student_name}\n檔案: {file.filename}\n班級: {class_name}\n本地路徑: {save_path}",
+                    severity="warning"
+                )
+
             # 檔案成功保存後才刪除上傳訊息
             try:
                 await message.delete()
@@ -658,15 +675,6 @@ class HomeworkBot:
 
             # 刪除臨時檔案
             os.remove(temp_path)
-
-            if save_path is None:
-                await message.author.send("❌ 檔案保存失敗\n" "❌ File save failed")
-                await self._notify_administrators(
-                    "Google Drive 上傳失敗",
-                    f"用戶: {db_student_name}\n檔案: {file.filename}\n班級: {class_name}",
-                    severity="error"
-                )
-                return
 
             # 發送處理中訊息
             processing_msg = await message.author.send(
@@ -846,12 +854,70 @@ class HomeworkBot:
         """啟動機器人"""
         self.client.run(DISCORD_TOKEN)
 
+    async def _assign_role_after_login(self, user, class_name):
+        """登入成功後自動分配身分組"""
+        try:
+            # 獲取所有 guild（伺服器）
+            guilds = self.client.guilds
+            if not guilds:
+                print("❌ 找不到任何伺服器")
+                return False
+            
+            # 使用第一個伺服器（通常機器人只在一個伺服器中）
+            guild = guilds[0]
+            
+            # 獲取 member 物件
+            member = guild.get_member(user.id)
+            if not member:
+                print(f"❌ 在伺服器中找不到用戶 {user.id}")
+                return False
+            
+            # 根據班級名稱決定要分配的身分組
+            role_mapping = {
+                "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
+                "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
+                "CYCUIUBM": (CYCUIUBM_ROLE_ID, CYCUIUBM_ROLE_NAME),
+            }
+            
+            if class_name not in role_mapping:
+                print(f"❌ 未知的班級名稱: {class_name}")
+                return False
+            
+            role_id, role_name = role_mapping[class_name]
+            
+            # 嘗試透過 ID 獲取身分組
+            role = None
+            if role_id:
+                role = discord.utils.get(guild.roles, id=role_id)
+            
+            # 如果透過 ID 找不到，嘗試透過名稱
+            if role is None and role_name:
+                role = discord.utils.get(guild.roles, name=role_name)
+            
+            if role is None:
+                print(f"❌ 找不到身分組: {class_name} (ID: {role_id}, Name: {role_name})")
+                return False
+            
+            # 檢查用戶是否已經有這個身分組
+            if role in member.roles:
+                print(f"✅ 用戶 {user.id} 已經擁有身分組 {role.name}")
+                return True
+            
+            # 分配身分組
+            await member.add_roles(role, reason=f"Auto-assigned after login (class: {class_name})")
+            print(f"✅ 已為用戶 {user.id} 分配身分組 {role.name}")
+            return True
+            
+        except Exception as e:
+            print(f"❌ 分配身分組失敗: {e}")
+            traceback.print_exc()
+            return False
+
     async def _handle_password_login(self, message):
-        """處理密碼登入邏輯 - 根據用戶身分組決定查詢範圍"""
+        """處理密碼登入邏輯 - 支援私訊和班級頻道"""
         try:
             user_id = message.author.id
-            member = message.guild.get_member(user_id)
-
+            
             # 檢查用戶是否已經登入過
             existing_student = self.db.get_student_by_discord_id(str(user_id))
             if existing_student:
@@ -867,49 +933,54 @@ class HomeworkBot:
                     class_name = "未知"
 
                 await message.author.send(
-                    f"❌ 您已經登入過系統 / You have already logged in\n" f"學號 / Student ID：{student_number}\n" f"班級 / Class：{class_name}"
+                    f"ℹ️ **您已經登入過系統 / You have already logged in**\n\n"
+                    f"📋 帳號資訊 / Account info：\n"
+                    f"• 學號 / Student ID：`{student_number}`\n"
+                    f"• 班級 / Class：`{class_name}`\n\n"
+                    f"💡 您可以直接開始使用系統功能\n"
+                    f"💡 You can start using system features now"
                 )
                 try:
-                    await message.delete()
+                    # 只在非私訊時刪除訊息
+                    if not isinstance(message.channel, discord.DMChannel):
+                        await message.delete()
                 except:
                     pass
                 return
 
-            # 檢查用戶是否有身分組
-            user_class_name = self._get_user_class_from_roles(member)
-            if not user_class_name:
-                await message.author.send(
-                    "❌ 您尚未擁有任何身分組，無法使用密碼登入\n"
-                    "❌ You don't have any role yet, cannot use password login\n\n"
-                    "請先到歡迎頻道使用以下指令加入身分組：\n"
-                    "Please go to welcome channel and use the following commands to join a role:\n\n"
-                    "• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
-                    "• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
-                    "• `!join CYCUIUBM` - 中原大學國際商學學士學位學程 / CYCU IUBM\n\n"
-                    "⚠️ **重要 / Important**：只有擁有對應身分組的用戶才能登入該班級的帳號！\n"
-                    "Only users with corresponding role can login to that class account!"
-                )
-                try:
-                    await message.delete()
-                except:
-                    pass
-                return
-
+            # ✅ 檢查是否為私訊
+            is_dm = isinstance(message.channel, discord.DMChannel)
+            
             # 解析指令 - 只支援 !login 學號 密碼
             parts = message.content.split(maxsplit=2)
 
             if len(parts) != 3:
-                await message.author.send(
-                    "❌ 登入指令格式錯誤 / Login command format error\n\n"
-                    f"正確使用方式 / Correct usage：`!login 學號 密碼` / `!login student_id password`\n"
-                    f"您的身分組 / Your role：{user_class_name}\n"
-                    f"系統將只在 {user_class_name} 班級中驗證您的資料\n"
-                    f"System will only verify your data in {user_class_name} class\n\n"
-                    "⚠️ **重要 / Important**：系統會根據您的身分組限制登入範圍，確保資料安全！\n"
-                    "System will restrict login scope based on your role to ensure data security!"
-                )
+                if is_dm:
+                    await message.author.send(
+                        "❌ **登入指令格式錯誤 / Login command format error**\n\n"
+                        f"✅ 正確使用方式 / Correct usage：\n"
+                        f"`!login 學號 密碼`\n"
+                        f"`!login student_id password`\n\n"
+                        f"💡 系統將在所有班級中查找您的帳號並自動分配身分組\n"
+                        f"💡 System will search all classes and auto-assign role"
+                    )
+                else:
+                    # 班級頻道登入需要身分組
+                    member = message.guild.get_member(user_id)
+                    user_class_name = self._get_user_class_from_roles(member)
+                    
+                    await message.author.send(
+                        "❌ **登入指令格式錯誤 / Login command format error**\n\n"
+                        f"✅ 正確使用方式 / Correct usage：\n"
+                        f"`!login 學號 密碼`\n"
+                        f"`!login student_id password`\n\n"
+                        f"{'📋 您的身分組 / Your role：`' + user_class_name + '`' if user_class_name else '⚠️ 您尚未選擇身分組'}\n\n"
+                        f"💡 提示：您也可以在私訊中使用此指令\n"
+                        f"💡 Tip: You can also use this command in DM"
+                    )
                 try:
-                    await message.delete()
+                    if not is_dm:
+                        await message.delete()
                 except:
                     pass
                 return
@@ -917,297 +988,136 @@ class HomeworkBot:
             student_number = parts[1]
             password = parts[2]
 
-            print(f"🔐 用戶 {user_id} 嘗試登入，身分組: {user_class_name}, 學號: {student_number}")
-
-            # 根據用戶身分組驗證登入
-            if await self._verify_and_login_by_user_role(message.author, user_class_name, student_number, password):
-                await message.author.send("✅ 登入成功！/ Login successful!")
-                print(f"✅ 用戶 {user_id} 登入成功")
+            # ✅ 根據是否為私訊選擇不同的驗證方式
+            if is_dm:
+                # 私訊登入：在所有班級中查找
+                print(f"🔐 用戶 {user_id} 在私訊中嘗試登入，學號: {student_number}")
+                
+                success = await self._verify_and_login_all_classes(message.author, student_number, password)
+                
+                if not success:
+                    await message.author.send(
+                        f"❌ **登入失敗 / Login Failed**\n\n"
+                        f"可能的原因 / Possible reasons：\n"
+                        f"• 學號 `{student_number}` 不存在於系統中\n"
+                        f"  Student ID does not exist in system\n"
+                        f"• 密碼錯誤 / Incorrect password\n"
+                        f"• 該學號已綁定其他 Discord 帳號\n"
+                        f"  Already bound to another Discord account\n\n"
+                        f"💡 請確認您的學號和密碼是否正確\n"
+                        f"💡 Please confirm your student ID and password"
+                    )
+                    print(f"❌ 用戶 {user_id} 在私訊中登入失敗")
             else:
-                await message.author.send(
-                    f"❌ 登入失敗 / Login failed\n\n"
-                    f"可能的原因 / Possible reasons：\n"
-                    f"1. 學號 {student_number} 不存在於 {user_class_name} 班級中\n"
-                    f"   Student ID {student_number} does not exist in {user_class_name} class\n"
-                    f"2. 密碼錯誤 / Incorrect password\n"
-                    f"3. 該學號已綁定其他 Discord 帳號\n"
-                    f"   This student ID is already bound to another Discord account\n\n"
-                    f"💡 **說明 / Note**：\n"
-                    f"• 系統只會在您的身分組（{user_class_name}）對應的班級中查找帳號\n"
-                    f"  System will only search for account in your role's ({user_class_name}) corresponding class\n"
-                    f"• 不同班級可以有相同學號，這是正常的\n"
-                    f"  Different classes can have same student ID, this is normal\n"
-                    f"• 如果您確定學號和密碼正確，請聯繫管理員檢查帳號是否已正確導入到 {user_class_name} 班級\n"
-                    f"  If you're sure the ID and password are correct, please contact admin to check if account is imported to {user_class_name} class"
-                )
-                print(f"❌ 用戶 {user_id} 登入失敗")
+                # 班級頻道登入：限制在對應班級中查找
+                member = message.guild.get_member(user_id)
+                user_class_name = self._get_user_class_from_roles(member)
+                
+                if not user_class_name:
+                    await message.author.send(
+                        "⚠️ **需要先選擇身分組 / Need to Choose Role First**\n\n"
+                        "請選擇以下任一方式：\n"
+                        "Please choose one of the following:\n\n"
+                        "**方式 1：到歡迎頻道選擇身分組**\n"
+                        "**Option 1: Choose role in welcome channel**\n"
+                        "• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
+                        "• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
+                        "• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM\n\n"
+                        "**方式 2：直接在私訊中登入（推薦）**\n"
+                        "**Option 2: Login via DM (Recommended)**\n"
+                        "• 私訊機器人：`!login 學號 密碼`\n"
+                        "• DM the bot: `!login student_id password`\n"
+                        "• 系統會自動分配對應的身分組\n"
+                        "  System will auto-assign corresponding role"
+                    )
+                    try:
+                        await message.delete()
+                    except:
+                        pass
+                    return
+                
+                print(f"🔐 用戶 {user_id} 在班級頻道嘗試登入，身分組: {user_class_name}, 學號: {student_number}")
 
-            try:
-                await message.delete()
-            except:
-                pass
-
-        except Exception as e:
-            await message.author.send(f"❌ 登入過程發生錯誤 / Error during login process：{e}")
-            print(f"❌ 登入過程發生錯誤: {e}")
-            # 清除登入狀態
-            if hasattr(self, "pending_login") and user_id in self.pending_login:
-                del self.pending_login[user_id]
-
-    async def _handle_login_step(self, message):
-        """處理登入步驟中的訊息"""
-        user_id = message.author.id
-
-        if user_id not in self.pending_login:
-            return False
-
-        login_data = self.pending_login[user_id]
-        content = message.content.strip()
-
-        try:
-            if login_data["step"] == "student_number":
-                # 處理學號輸入
-                login_data["student_number"] = content
-                login_data["step"] = "password"
-
-                await message.author.send("🔐 請輸入您的密碼：")
-
-            elif login_data["step"] == "password":
-                # 處理密碼輸入並完成登入
-                student_number = login_data["student_number"]
-                password = content
-
-                if await self._verify_and_login(message.author, student_number, password):
-                    await message.author.send("✅ 登入成功！")
-                    del self.pending_login[user_id]
+                # 根據用戶身分組驗證登入
+                success = await self._verify_and_login_by_user_role(message.author, user_class_name, student_number, password)
+                
+                if success:
+                    await message.author.send(
+                        f"✅ **登入成功！/ Login Successful!**\n\n"
+                        f"🎉 您可以開始上傳作業檔案進行評分了！\n"
+                        f"🎉 You can now upload homework for grading!"
+                    )
+                    print(f"✅ 用戶 {user_id} 在班級頻道登入成功")
                 else:
-                    await message.author.send("❌ 密碼錯誤，請重新輸入密碼：")
+                    await message.author.send(
+                        f"❌ **登入失敗 / Login Failed**\n\n"
+                        f"可能的原因 / Possible reasons：\n"
+                        f"• 學號 `{student_number}` 不存在於 `{user_class_name}` 班級中\n"
+                        f"  Student ID does not exist in {user_class_name} class\n"
+                        f"• 密碼錯誤 / Incorrect password\n"
+                        f"• 該學號已綁定其他 Discord 帳號\n"
+                        f"  Already bound to another Discord account\n\n"
+                        f"💡 提示：您可以在私訊中使用 `!login` 指令\n"
+                        f"   系統會在所有班級中查找您的帳號\n"
+                        f"💡 Tip: Use `!login` in DM to search all classes"
+                    )
+                    print(f"❌ 用戶 {user_id} 在班級頻道登入失敗")
 
-            return True
-
-        except Exception as e:
-            await message.author.send(f"❌ 處理登入步驟時發生錯誤：{e}")
-            del self.pending_login[user_id]
-            return True
-
-    async def _verify_and_login(self, user, student_number, password):
-        """驗證學號密碼並完成登入"""
-        try:
-            print(f"開始驗證學號: {student_number}")
-
-            # 從資料庫查詢學生資料（包含密碼）
-            student_data = self.db.get_student_by_student_id_with_password(student_number)
-
-            if not student_data:
-                print(f"❌ 找不到學號 {student_number} 的資料")
-                return False
-
-            print(f"✅ 找到學生資料: {student_data}")
-
-            # 解析學生資料 - 根據修正後的查詢結果調整
-            # (student_number, student_name, discord_id, class_id, class_name, password)
-            student_number_db, student_name, discord_id_in_db, class_id, class_name_db, stored_password = student_data
-
-            print(f"資料庫中的密碼: {stored_password}, 輸入的密碼: {password}")
-
-            # 驗證密碼
-            if stored_password != password:
-                print("❌ 密碼不匹配")
-                return False
-
-            print("✅ 密碼驗證成功")
-
-            # 檢查該學號是否已經綁定其他 Discord 帳號
-            if discord_id_in_db and discord_id_in_db != str(user.id):
-                await user.send(f"❌ 該學號已綁定其他 Discord 帳號")
-                return False
-
-            # 更新 Discord ID
-            if self.db.update_student_discord_id_by_student_id(student_number, str(user.id)):
-                await user.send(
-                    f"✅ 登入成功！\n"
-                    f"👤 學號：{student_number}\n"
-                    f"📛 姓名：{student_name}\n"
-                    f"🏫 班級：{class_name_db}\n"
-                    f"🔗 Discord ID 已綁定"
-                )
-
-                # 給予相應的身分組
-                await self._assign_role_after_login(user, class_name_db)
-                return True
-            else:
-                await user.send("❌ 更新 Discord ID 失敗")
-                return False
+                try:
+                    await message.delete()
+                except:
+                    pass
 
         except Exception as e:
-            print(f"驗證過程詳細錯誤: {e}")
-            import traceback
-
+            await message.author.send(f"❌ 登入過程發生錯誤 / Error during login：{e}")
+            print(f"❌ 登入過程發生錯誤: {e}")
             traceback.print_exc()
-            await user.send(f"❌ 驗證過程發生錯誤：{e}")
-            return False
 
-    async def _assign_role_after_login(self, user, class_name):
-        """登入後自動分配身分組"""
+    async def _verify_and_login_all_classes(self, user, student_number, password):
+        """在所有班級中驗證學號密碼並完成登入（用於私訊登入）"""
         try:
-            # 獲取用戶所在的伺服器
-            guild = None
-            for g in self.client.guilds:
-                member = g.get_member(user.id)
-                if member:
-                    guild = g
-                    break
-
-            if not guild:
-                await user.send("⚠️ 無法找到您所在的伺服器，請手動聯繫管理員分配身分組")
-                return
-
-            member = guild.get_member(user.id)
-            if not member:
-                return
-
-            # 根據班級名稱分配身分組
-            role_mapping = {
-                "NCUFN": (NCUFN_ROLE_NAME, NCUFN_ROLE_ID),
-                "NCUEC": (NCUEC_ROLE_NAME, NCUEC_ROLE_ID),
-                "CYCUIUBM": (CYCUIUBM_ROLE_NAME, CYCUIUBM_ROLE_ID),
-            }
-
-            if class_name in role_mapping:
-                role_name, role_id = role_mapping[class_name]
-
-                # 查找身分組
-                role = None
-                if role_id != 0:
-                    role = guild.get_role(role_id)
-
-                if not role:
-                    role = discord.utils.get(guild.roles, name=role_name)
-
-                if not role:
-                    # 創建身分組
-                    permissions = discord.Permissions()
-                    permissions.send_messages = True
-                    permissions.attach_files = True
-                    permissions.read_messages = True
-                    role = await guild.create_role(name=role_name, permissions=permissions, reason="自動創建身分組")
-
-                # 給予身分組
-                await member.add_roles(role, reason=f"登入後自動分配身分組: {class_name}")
-                await user.send(f"✅ 已自動分配身分組：{role_name}")
-
-        except Exception as e:
-            await user.send(f"⚠️ 分配身分組時發生錯誤：{e}")
-
-    def _get_user_class_from_roles(self, member):
-        """根據用戶的 Discord 身分組獲取對應的班級名稱"""
-        if not member:
-            return None
-
-        # 檢查用戶擁有的身分組
-        user_roles = [role.name for role in member.roles]
-
-        # 根據身分組對應班級
-        if NCUFN_ROLE_NAME in user_roles:
-            return "NCUFN"
-        elif NCUEC_ROLE_NAME in user_roles:
-            return "NCUEC"
-        elif CYCUIUBM_ROLE_NAME in user_roles:
-            return "CYCUIUBM"
-
-        return None
-
-    async def _verify_and_login_by_user_role(self, user, class_name, student_number, password):
-        """根據用戶身分組在對應班級範圍內驗證學號密碼並完成登入"""
-        try:
-            print(f"🔍 開始在 {class_name} 班級中驗證學號: {student_number}")
+            print(f"🔍 開始在所有班級中驗證學號: {student_number}")
             print(f"🆔 用戶 Discord ID: {user.id}")
 
-            # 步驟1：獲取班級ID
-            class_data = self.db.get_class_by_name(class_name)
-            if not class_data:
-                print(f"❌ 找不到班級 {class_name}")
-                return False
-
-            class_id = class_data[0]
-            print(f"✅ 找到班級 {class_name}, ID: {class_id}")
-
-            # 步驟2：檢查該 Discord ID 是否已經被其他學生使用
+            # 步驟1：檢查該 Discord ID 是否已經被其他學生使用
             existing_student_with_discord = self.db.get_student_by_discord_id(str(user.id))
             if existing_student_with_discord:
                 print(f"❌ Discord ID {user.id} 已被其他學生使用: {existing_student_with_discord}")
                 await user.send(
-                    f"❌ 您的 Discord 帳號已綁定到其他學生記錄\n"
-                    f"❌ Your Discord account is bound to another student record\n\n"
+                    f"❌ **您的 Discord 帳號已綁定到其他學生記錄**\n"
+                    f"❌ **Your Discord account is bound to another student record**\n\n"
                     f"📋 已綁定的帳號資訊 / Bound account info：\n"
                     f"• 學號 / Student ID：{existing_student_with_discord[2] if len(existing_student_with_discord) > 2 else '未知/Unknown'}\n"
                     f"• 班級 / Class：{existing_student_with_discord[5] if len(existing_student_with_discord) > 5 else existing_student_with_discord[4] if len(existing_student_with_discord) > 4 else '未知/Unknown'}\n\n"
-                    f"💡 **說明 / Note**：\n"
-                    f"• 每個 Discord 帳號只能綁定一個學生記錄\n"
-                    f"  Each Discord account can only be bound to one student record\n"
-                    f"• 如果這不是您的帳號，請聯繫管理員處理\n"
-                    f"  If this is not your account, please contact administrator"
+                    f"💡 每個 Discord 帳號只能綁定一個學生記錄\n"
+                    f"💡 Each Discord account can only be bound to one student record"
                 )
                 return False
 
-            # 步驟3：從資料庫查詢學生資料
+            # 步驟2：從資料庫查詢學生資料（不限制班級）
             student_data = self.db.get_student_by_student_id_with_password(student_number)
             if not student_data:
                 print(f"❌ 找不到學號 {student_number} 的資料")
-                await user.send(
-                    f"❌ 學號 {student_number} 不存在於系統中\n"
-                    f"❌ Student ID {student_number} does not exist in system\n\n"
-                    f"💡 可能的原因 / Possible reasons：\n"
-                    f"• 學號輸入錯誤 / Student ID input error\n"
-                    f"• 學號尚未導入系統 / Student ID not yet imported to system\n"
-                    f"• 請檢查學號格式是否正確 / Please check if student ID format is correct"
-                )
                 return False
 
             print(f"✅ 找到學生資料: {student_data}")
 
-            # 步驟4：解析學生資料並驗證班級匹配
+            # 步驟3：解析學生資料
             student_number_db, student_name, discord_id_in_db, db_class_id, class_name_db, stored_password = student_data
 
             print(
                 f"📋 學生完整資料: 學號={student_number_db}, 姓名={student_name}, Discord ID='{discord_id_in_db}', 班級ID={db_class_id}, 班級名={class_name_db}"
             )
 
-            # 驗證班級是否匹配
-            if db_class_id != class_id or class_name_db != class_name:
-                print(f"❌ 班級不匹配 - 用戶班級: {class_name}(ID:{class_id}), 學號班級: {class_name_db}(ID:{db_class_id})")
-                await user.send(
-                    f"❌ 學號 {student_number} 存在，但不在您的班級中\n"
-                    f"❌ Student ID {student_number} exists, but not in your class\n\n"
-                    f"🔍 查詢結果 / Query result：\n"
-                    f"• 您的身分組班級 / Your role's class：{class_name}\n"
-                    f"• 該學號所屬班級 / Student ID's class：{class_name_db}\n\n"
-                    f"💡 **說明 / Note**：\n"
-                    f"• 不同班級可能有相同學號 / Different classes may have same student ID\n"
-                    f"• 系統只允許您登入自己班級的帳號 / System only allows you to login to your own class account\n"
-                    f"• 請確認您選擇了正確的身分組 / Please confirm you chose the correct role"
-                )
-                return False
-
-            print(f"✅ 班級驗證通過：學號 {student_number} 屬於班級 {class_name}")
-
-            # 步驟5：驗證密碼
+            # 步驟4：驗證密碼
             print(f"🔐 資料庫中的密碼: {stored_password}, 輸入的密碼: {password}")
             if stored_password != password:
                 print("❌ 密碼不匹配")
-                await user.send(
-                    f"❌ 密碼錯誤 / Incorrect password\n\n"
-                    f"📋 帳號資訊 / Account info：\n"
-                    f"• 學號 / Student ID：{student_number}\n"
-                    f"• 班級 / Class：{class_name}\n"
-                    f"• 姓名 / Name：{student_name}\n\n"
-                    f"請確認密碼是否正確 / Please confirm if password is correct"
-                )
                 return False
 
             print("✅ 密碼驗證成功")
 
-            # 步驟6：檢查該學號的 Discord 綁定狀態
+            # 步驟5：檢查該學號的 Discord 綁定狀態
             print(f"🔍 檢查學號的 Discord 綁定狀態: '{discord_id_in_db}' (type: {type(discord_id_in_db)})")
 
             # 檢查 Discord ID 是否為空值（NULL, None, 空字符串等）
@@ -1220,273 +1130,215 @@ class HomeworkBot:
                     # 已經是當前用戶，直接返回成功
                     print(f"✅ 學號已綁定當前用戶，直接返回成功")
                     await user.send(
-                        f"✅ 您已經登入過系統！/ You have already logged in!\n\n"
-                        f"📋 帳號資訊 / Account info：\n"
-                        f"👤 學號 / Student ID：{student_number}\n"
-                        f"📛 姓名 / Name：{student_name}\n"
-                        f"🏫 班級 / Class：{class_name}\n"
-                        f"🔗 Discord ID 已綁定 / Discord ID bound"
+                        f"✅ **您已經登入過系統！/ You have already logged in!**\n\n"
+                        f"📋 **帳號資訊 / Account Info：**\n"
+                        f"👤 學號 / Student ID：`{student_number}`\n"
+                        f"📛 姓名 / Name：`{student_name}`\n"
+                        f"🏫 班級 / Class：`{class_name_db}`\n"
+                        f"🔗 Discord ID 已綁定 / Discord ID bound\n\n"
+                        f"🎓 您可以開始上傳作業檔案進行評分了！\n"
+                        f"🎓 You can now upload homework files for grading!"
                     )
                     return True
                 else:
                     # 已綁定其他 Discord 帳號
                     print(f"❌ 該學號已綁定其他 Discord 帳號: {discord_id_in_db}")
-                    await user.send(
-                        f"❌ 該學號已經綁定其他 Discord 帳號\n"
-                        f"❌ This student ID is already bound to another Discord account\n\n"
-                        f"📋 帳號資訊 / Account info：\n"
-                        f"• 學號 / Student ID：{student_number}\n"
-                        f"• 班級 / Class：{class_name}\n"
-                        f"• 姓名 / Name：{student_name}\n\n"
-                        f"如果這是您的帳號，請聯繫管理員處理\n"
-                        f"If this is your account, please contact administrator"
-                    )
-                return False
+                    return False
             else:
                 # Discord ID 為空值，可以直接綁定
                 print(f"✅ 學號的 Discord ID 為空值，可以進行綁定")
 
-            # 步驟7：更新 Discord ID（只有當 Discord ID 為空值時才執行）
-            print(f"🔗 開始將 Discord ID {user.id} 綁定到學號 {student_number} (班級: {class_name})")
+            # 步驟6：更新 Discord ID
+            print(f"🔗 開始將 Discord ID {user.id} 綁定到學號 {student_number} (班級: {class_name_db})")
 
             try:
-                # 使用班級ID和學號的組合來更新，避免重複學號問題
-                update_result = self.db.update_student_discord_id_by_student_id_and_class(student_number, str(user.id), class_id)
+                # 使用班級ID和學號的組合來更新
+                update_result = self.db.update_student_discord_id_by_student_id_and_class(student_number, str(user.id), db_class_id)
                 print(f"📝 資料庫更新結果: {update_result}")
 
                 if update_result:
                     print("✅ Discord ID 更新成功")
+                    
+                    # ✅ 自動分配身分組
+                    role_assigned = await self._assign_role_after_login(user, class_name_db)
+                    
+                    # ✅ 合併成一條訊息
                     await user.send(
-                        f"✅ 登入成功！/ Login successful!\n\n"
-                        f"📋 帳號資訊 / Account info：\n"
-                        f"👤 學號 / Student ID：{student_number}\n"
-                        f"📛 姓名 / Name：{student_name}\n"
-                        f"🏫 班級 / Class：{class_name}\n"
-                        f"🔗 Discord ID 已綁定 / Discord ID bound\n\n"
-                        f"🛡️ 系統已驗證您的身分組與班級匹配\n"
-                        f"🛡️ System has verified your role matches the class"
+                        f"✅ **登入成功！/ Login Successful!**\n\n"
+                        f"📋 **帳號資訊 / Account Info：**\n"
+                        f"👤 學號 / Student ID：`{student_number}`\n"
+                        f"📛 姓名 / Name：`{student_name}`\n"
+                        f"🏫 班級 / Class：`{class_name_db}`\n"
+                        f"{'🎓 身分組已自動分配 / Role automatically assigned' if role_assigned else '⚠️ 身分組分配失敗，請聯繫管理員 / Role assignment failed'}\n\n"
+                        f"🎉 **您可以開始使用系統功能了！/ You can now use the system!**\n"
+                        f"• 前往您的班級頻道上傳 HTML 作業檔案\n"
+                        f"  Go to your class channel to upload HTML homework\n"
+                        f"• 使用 `!help` 查看完整指令說明\n"
+                        f"  Use `!help` to view complete instructions\n"
+                        f"• 使用 `!my-submissions` 查看提交記錄\n"
+                        f"  Use `!my-submissions` to view submission history"
                     )
+                    
                     return True
                 else:
                     print("❌ Discord ID 更新失敗 - 更新操作返回 False")
-                    await user.send(
-                        f"❌ 系統更新失敗 / System update failed\n\n"
-                        f"📋 嘗試綁定的帳號 / Attempted binding account：\n"
-                        f"• 學號 / Student ID：{student_number}\n"
-                        f"• 班級 / Class：{class_name}\n\n"
-                        f"請聯繫管理員檢查資料庫狀態\n"
-                        f"Please contact administrator to check database status"
-                    )
                     return False
 
             except Exception as update_error:
                 error_msg = str(update_error)
                 print(f"❌ 更新 Discord ID 時發生異常: {error_msg}")
-
-                if "UNIQUE constraint failed" in error_msg:
-                    # 檢查是否是 Discord ID 重複
-                    print(f"🔍 UNIQUE 約束失敗，檢查 Discord ID 衝突...")
-                    conflicting_student = self.db.get_student_by_discord_id(str(user.id))
-                    if conflicting_student:
-                        # 分析衝突學生的資訊
-                        conflict_class_name = (
-                            conflicting_student[5]
-                            if len(conflicting_student) > 5
-                            else conflicting_student[4] if len(conflicting_student) > 4 else "未知"
-                        )
-                        conflict_student_number = conflicting_student[2] if len(conflicting_student) > 2 else "未知"
-
-                        print(f"🔍 發現 Discord ID 衝突: {conflicting_student}")
-                        await user.send(
-                            f"❌ Discord ID 綁定衝突 / Discord ID binding conflict\n\n"
-                            f"📋 您的 Discord 帱號已綁定到 / Your Discord account is bound to：\n"
-                            f"• 學號 / Student ID：{conflict_student_number}\n"
-                            f"• 班級 / Class：{conflict_class_name}\n\n"
-                            f"🔄 嘗試綁定的帳號 / Attempted binding account：\n"
-                            f"• 學號 / Student ID：{student_number}\n"
-                            f"• 班級 / Class：{class_name}\n\n"
-                            f"💡 每個 Discord 帳號只能綁定一個學生記錄\n"
-                            f"💡 Each Discord account can only be bound to one student record\n"
-                            f"如果需要更改綁定，請聯繫管理員\n"
-                            f"If you need to change binding, please contact administrator"
-                        )
-                    else:
-                        # 可能是學號重複約束
-                        print(f"🔍 可能是學號+班級組合衝突")
-                        await user.send(
-                            f"❌ 學號綁定失敗：資料約束錯誤\n"
-                            f"❌ Student ID binding failed: Data constraint error\n\n"
-                            f"📋 嘗試綁定的帳號 / Attempted binding account：\n"
-                            f"• 學號 / Student ID：{student_number}\n"
-                            f"• 班級 / Class：{class_name}\n\n"
-                            f"💡 **可能的原因 / Possible reasons**：\n"
-                            f"• 該學號在此班級中已有其他 Discord 綁定\n"
-                            f"  This student ID already has another Discord binding in this class\n"
-                            f"• 資料庫約束衝突 / Database constraint conflict\n"
-                            f"• 請聯繫管理員檢查帳號狀態\n"
-                            f"  Please contact administrator to check account status"
-                        )
-                elif "no such method" in error_msg.lower() or "no such function" in error_msg.lower():
-                    # 如果新方法不存在，回退到原方法
-                    print(f"⚠️ 新的更新方法不存在，回退到原方法")
-                    try:
-                        update_result = self.db.update_student_discord_id_by_student_id(student_number, str(user.id))
-                        if update_result:
-                            print("✅ 使用原方法更新 Discord ID 成功")
-                            await user.send(
-                                f"✅ 登入成功！/ Login successful!\n\n"
-                                f"📋 帳號資訊 / Account info：\n"
-                                f"👤 學號 / Student ID：{student_number}\n"
-                                f"📛 姓名 / Name：{student_name}\n"
-                                f"🏫 班級 / Class：{class_name}\n"
-                                f"🔗 Discord ID 已綁定 / Discord ID bound\n\n"
-                                f"⚠️ 系統使用了備用更新方法\n"
-                                f"⚠️ System used backup update method"
-                            )
-                            return True
-                        else:
-                            await user.send(
-                                "❌ 備用更新方法也失敗 / Backup update method also failed\n" "請聯繫管理員 / Please contact administrator"
-                            )
-                            return False
-                    except Exception as fallback_error:
-                        print(f"❌ 備用方法也失敗: {fallback_error}")
-                        await user.send(
-                            f"❌ 所有更新方法都失敗 / All update methods failed\n\n"
-                            f"錯誤訊息 / Error message：{fallback_error}\n\n"
-                            f"請聯繫管理員處理 / Please contact administrator"
-                        )
-                        return False
-                else:
-                    await user.send(
-                        f"❌ Discord ID 綁定失敗 / Discord ID binding failed\n\n"
-                        f"📋 嘗試綁定的帳號 / Attempted binding account：\n"
-                        f"• 學號 / Student ID：{student_number}\n"
-                        f"• 班級 / Class：{class_name}\n\n"
-                        f"錯誤訊息 / Error message：{error_msg}\n\n"
-                        f"請聯繫管理員處理此問題\n"
-                        f"Please contact administrator to handle this issue"
-                    )
                 return False
+                
         except Exception as e:
             print(f"驗證過程詳細錯誤: {e}")
-            import traceback
-
             traceback.print_exc()
-            await user.send(f"❌ 驗證過程發生錯誤 / Error during verification process：{e}")
             return False
 
-    async def _handle_join_role(self, message, role_type):
-        """處理使用者請求加入身分組"""
-        try:
-            # 確認為 Guild 內的 Member
-            guild = message.guild
-            member = message.author
-            if guild is None or not hasattr(member, "add_roles"):
-                return
+    def _get_user_class_from_roles(self, member):
+        """從用戶的身分組中獲取班級名稱"""
+        if not member:
+            return None
+        
+        for role in member.roles:
+            if role.name in self.role_to_class:
+                return self.role_to_class[role.name]
+        
+        return None
 
-            mapping = {
+    def _get_safe_filename(self, filename):
+        """將字串轉換為安全的檔名"""
+        # 移除或替換不安全的字元
+        import re
+        safe_name = re.sub(r'[<>:"/\\|?*]', '_', filename)
+        return safe_name
+
+    async def _handle_join_role(self, message, role_type):
+        """處理加入身分組的請求"""
+        try:
+            user_id = message.author.id
+            member = message.guild.get_member(user_id)
+            
+            # 檢查用戶是否已經有身分組
+            existing_class = self._get_user_class_from_roles(member)
+            if existing_class:
+                await message.author.send(
+                    f"⚠️ **您已經擁有身分組 / You already have a role**\n\n"
+                    f"目前身分組 / Current role：`{existing_class}`\n\n"
+                    f"⚠️ 每人只能選擇一個身分組，且選擇後無法更改\n"
+                    f"⚠️ Each person can only choose one role, and it cannot be changed"
+                )
+                try:
+                    await message.delete()
+                except:
+                    pass
+                return
+            
+            # 驗證身分組類型
+            valid_roles = {
                 "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
                 "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
                 "CYCUIUBM": (CYCUIUBM_ROLE_ID, CYCUIUBM_ROLE_NAME),
             }
-
-            if role_type not in mapping:
+            
+            if role_type not in valid_roles:
                 await message.author.send(
-                    f"❌ **找不到身分組類型 / Role Type Not Found**\n\n"
-                    f"• 輸入的類型 / Input: `{role_type}`\n"
-                    f"• 可用的類型 / Available types: `NCUFN`, `NCUEC`, `CYCUIUBM`"
+                    f"❌ **無效的身分組代碼 / Invalid role code**\n\n"
+                    f"請使用以下代碼之一：\n"
+                    f"Please use one of the following codes:\n\n"
+                    f"• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
+                    f"• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
+                    f"• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM"
                 )
                 try:
                     await message.delete()
-                except discord.Forbidden:
-                    print("無權限刪除訊息 / No permission to delete message")
-                except discord.NotFound:
-                    print("訊息已被刪除 / Message already deleted")
+                except:
+                    pass
                 return
-
-            role_id, role_name = mapping[role_type]
+            
+            # 獲取身分組
+            role_id, role_name = valid_roles[role_type]
             role = None
+            
             if role_id:
-                role = discord.utils.get(guild.roles, id=role_id)
+                role = discord.utils.get(message.guild.roles, id=role_id)
+            
             if role is None and role_name:
-                role = discord.utils.get(guild.roles, name=role_name)
-
+                role = discord.utils.get(message.guild.roles, name=role_name)
+            
             if role is None:
                 await message.author.send(
-                    f"❌ **伺服器中找不到身分組 / Role Not Found in Server**\n\n"
-                    f"• 身分組類型 / Role Type: `{role_type}`\n"
-                    f"• 請確認身分組存在且機器人有權限\n"
-                    f"  Please ensure the role exists and bot has permissions"
+                    f"❌ **系統錯誤 / System Error**\n\n"
+                    f"找不到身分組：{role_type}\n"
+                    f"Role not found: {role_type}\n\n"
+                    f"請聯繫管理員 / Please contact administrator"
                 )
-                return
-
-            # 檢查用戶是否已經擁有任何班級身分組
-            existing_class_roles = []
-            for role_name_check in [NCUFN_ROLE_NAME, NCUEC_ROLE_NAME, CYCUIUBM_ROLE_NAME]:
-                existing_role = discord.utils.get(member.roles, name=role_name_check)
-                if existing_role:
-                    existing_class_roles.append(existing_role)
-
-            if existing_class_roles:
-                existing_role_names = [r.name for r in existing_class_roles]
-                await message.author.send(
-                    f"❌ **您已經擁有身分組 / You Already Have a Role**\n\n"
-                    f"• 目前身分組 / Current role(s): `{', '.join(existing_role_names)}`\n"
-                    f"• 每個用戶只能選擇一個學校身分組\n"
-                    f"  Each user can only choose one school identity\n\n"
-                    f"💡 如果需要更改身分組，請聯繫管理員\n"
-                    f"💡 If you need to change your role, please contact an administrator"
-                )
-                # 刪除訊息後返回
                 try:
                     await message.delete()
-                except discord.Forbidden:
-                    print("無權限刪除訊息 / No permission to delete message")
-                except discord.NotFound:
-                    print("訊息已被刪除 / Message already deleted")
+                except:
+                    pass
                 return
-
-            await member.add_roles(role, reason="User requested role join")
+            
+            # 分配身分組
+            await member.add_roles(role, reason=f"User joined {role_type}")
+            
+            # 在資料庫中創建學生記錄（如果還沒有）
+            class_name = self.role_to_class.get(role.name, role_type)
+            class_data = self.db.get_class_by_name(class_name)
+            
+            if class_data:
+                class_id = class_data[0]
+                
+                # 檢查是否已有記錄
+                existing_student = self.db.get_student_by_discord_id(str(user_id))
+                if not existing_student:
+                    # 創建新學生記錄（暫時沒有學號和姓名）
+                    student_id = self.db.create_student(
+                        student_name=f"User_{user_id}",
+                        discord_id=str(user_id),
+                        class_id=class_id
+                    )
+                    print(f"✅ 已為用戶 {user_id} 創建學生記錄 (ID: {student_id})")
+            
+            # 發送成功訊息
+            channel_id = self.class_channels.get(class_name)
+            channel_mention = f"<#{channel_id}>" if channel_id else "您的班級頻道"
+            
             await message.author.send(
-                f"✅ **身分組已加入 / Role Added Successfully**\n\n"
-                f"• 身分組名稱 / Role Name: `{role.name}`\n"
-                f"• 您現在可以使用系統功能了\n"
-                f"  You can now use the system features"
+                f"✅ **身分組分配成功 / Role Assigned Successfully**\n\n"
+                f"🎓 您的身分組 / Your role：`{role.name}`\n"
+                f"🏫 對應班級 / Class：`{class_name}`\n"
+                f"📍 班級頻道 / Class channel：{channel_mention}\n\n"
+                f"🔑 **下一步：登入系統 / Next Step: Login**\n"
+                f"請使用以下指令登入：\n"
+                f"Please use the following command to login:\n\n"
+                f"• 在班級頻道：`!login 學號 密碼`\n"
+                f"  In class channel: `!login student_id password`\n"
+                f"• 或在私訊中：`!login 學號 密碼`\n"
+                f"  Or in DM: `!login student_id password`\n\n"
+                f"💡 私訊登入更方便且安全！\n"
+                f"💡 Login via DM is more convenient and secure!"
             )
-
-            # 刪除用戶的 !join 訊息，保持頻道清潔
+            
+            print(f"✅ 已為用戶 {user_id} 分配身分組 {role.name}")
+            
             try:
                 await message.delete()
-            except discord.Forbidden:
-                print("無權限刪除訊息 / No permission to delete message")
-            except discord.NotFound:
-                print("訊息已被刪除 / Message already deleted")
-
+            except:
+                pass
+            
         except Exception as e:
-            # 發生錯誤時也刪除訊息
+            await message.author.send(
+                f"❌ **分配身分組時發生錯誤 / Error assigning role**\n\n"
+                f"錯誤訊息 / Error message：{e}\n\n"
+                f"請聯繫管理員 / Please contact administrator"
+            )
+            print(f"❌ 分配身分組錯誤: {e}")
+            traceback.print_exc()
+            
             try:
                 await message.delete()
-            except discord.Forbidden:
-                print("無權限刪除訊息 / No permission to delete message")
-            except discord.NotFound:
-                print("訊息已被刪除 / Message already deleted")
-        
-            await message.author.send(
-                f"❌ **處理身分組時發生錯誤 / Error Processing Role**\n\n"
-                f"• 錯誤訊息 / Error Message: {e}\n"
-                f"• 請聯繫管理員 / Please contact administrator"
-            )
-
-    def _get_safe_filename(self, name: str) -> str:
-        """
-        將名稱轉換為安全的檔案名稱
-        移除或替換不安全的字元
-        """
-        # 移除或替換不安全的字元
-        safe_name = name.replace(" ", "_")
-        safe_name = "".join(c for c in safe_name if c.isalnum() or c in ("_", "-"))
-        return safe_name
+            except:
+                pass
 
     async def _show_my_submissions(self, message):
         """顯示用戶的作業提交記錄"""
@@ -1575,7 +1427,6 @@ class HomeworkBot:
                 
                 await message.author.send(response)
             
-                       
             try:
                 await message.delete()
             except:
@@ -1586,3 +1437,77 @@ class HomeworkBot:
             print(f"❌ _show_my_submissions 錯誤: {e}")
             import traceback
             traceback.print_exc()
+
+    async def _verify_and_login_by_user_role(self, user, user_class_name, student_number, password):
+        """根據用戶的身分組驗證登入（用於班級頻道登入）"""
+        try:
+            print(f"🔍 開始驗證學號: {student_number} (班級: {user_class_name})")
+            print(f"🆔 用戶 Discord ID: {user.id}")
+
+            # 步驟1：檢查該 Discord ID 是否已經被使用
+            existing_student_with_discord = self.db.get_student_by_discord_id(str(user.id))
+            if existing_student_with_discord:
+                print(f"❌ Discord ID {user.id} 已被使用")
+                return False
+
+            # 步驟2：獲取班級資料
+            class_data = self.db.get_class_by_name(user_class_name)
+            if not class_data:
+                print(f"❌ 找不到班級: {user_class_name}")
+                return False
+            
+            class_id = class_data[0]
+
+            # 步驟3：查詢學生資料（限制在對應班级）
+            student_data = self.db.get_student_by_student_id_and_class_with_password(student_number, class_id)
+            if not student_data:
+                print(f"❌ 在班級 {user_class_name} 中找不到學號 {student_number}")
+                return False
+
+            print(f"✅ 找到學生資料: {student_data}")
+
+            # 步驟4：解析學生資料
+            student_number_db, student_name, discord_id_in_db, stored_password = student_data
+
+            # 步驟5：驗證密碼
+            if stored_password != password:
+                print("❌ 密碼不匹配")
+                return False
+
+            print("✅ 密碼驗證成功")
+
+            # 步驟6：檢查 Discord 綁定狀態
+            def is_empty_discord_id(discord_id):
+                return discord_id is None or discord_id == "" or str(discord_id).lower() in ["none", "null", ""]
+
+            if not is_empty_discord_id(discord_id_in_db):
+                if str(discord_id_in_db) == str(user.id):
+                    print("✅ 已綁定當前用戶")
+                    return True
+                else:
+                    print(f"❌ 已綁定其他 Discord 帳號: {discord_id_in_db}")
+                    return False
+
+            # 步驟7：更新 Discord ID
+            print(f"🔗 開始綁定 Discord ID {user.id} 到學號 {student_number}")
+
+            try:
+                update_result = self.db.update_student_discord_id_by_student_id_and_class(
+                    student_number, str(user.id), class_id
+                )
+                
+                if update_result:
+                    print("✅ Discord ID 更新成功")
+                    return True
+                else:
+                    print("❌ Discord ID 更新失敗")
+                    return False
+
+            except Exception as update_error:
+                print(f"❌ 更新 Discord ID 時發生異常: {update_error}")
+                return False
+
+        except Exception as e:
+            print(f"❌ 驗證過程發生錯誤: {e}")
+            traceback.print_exc()
+            return False
