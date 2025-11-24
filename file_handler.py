@@ -190,11 +190,17 @@ class FileHandler:
     async def save_upload_file(file, user_id, uploads_student_dir, filename, question_title, class_name, student_id, db_student_name, attempt_number):
         """保存上傳檔案到本地，然後上傳到 Google Drive"""
         try:
-            # 確保本地目錄存在
+            # ✅ 修改：建立與雲端相同的目錄結構
+            # UPLOADS_DIR / question_title / class_name / student_id
+            safe_question = FileHandler.get_safe_filename(question_title)
+            question_dir = os.path.join(UPLOADS_DIR, safe_question)
+            class_dir = os.path.join(question_dir, class_name)
+            uploads_student_dir = os.path.join(class_dir, student_id)
+            
+            # 確保本地目錄存在（包含題目和班級層級）
             os.makedirs(uploads_student_dir, exist_ok=True)
 
             # 生成新的檔案名稱：學號_班級_姓名_標題_次數
-            safe_question = FileHandler.get_safe_filename(question_title)
             new_filename = f"{student_id}_{class_name}_{db_student_name}_{safe_question}_第{attempt_number}次.html"
             local_path = os.path.join(uploads_student_dir, new_filename)
 
@@ -236,7 +242,14 @@ class FileHandler:
     ):
         """生成並保存 HTML 報告到本地和 Google Drive"""
         try:
-            # 確保本地目錄存在
+            # ✅ 修改：建立與雲端相同的目錄結構
+            # REPORTS_DIR / question_title / class_name / student_id
+            safe_question = FileHandler.get_safe_filename(question_title)
+            question_dir = os.path.join(REPORTS_DIR, safe_question)
+            class_dir = os.path.join(question_dir, class_name)
+            reports_student_dir = os.path.join(class_dir, student_id)
+            
+            # 確保本地目錄存在（包含題目和班級層級）
             os.makedirs(reports_student_dir, exist_ok=True)
 
             # 生成 HTML 報告（在執行緒池中執行，避免阻塞）
