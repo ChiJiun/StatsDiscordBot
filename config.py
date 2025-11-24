@@ -27,6 +27,7 @@ WELCOME_CHANNEL_ID = int(os.getenv("WELCOME_CHANNEL_ID", 0))  # 歡迎頻道 ID
 NCUFN_CHANNEL_ID = int(os.getenv("NCUFN_CHANNEL_ID", 0))  # 中央財金系頻道 ID
 NCUEC_CHANNEL_ID = int(os.getenv("NCUEC_CHANNEL_ID", 0))  # 中央經濟系頻道 ID
 CYCUIUBM_CHANNEL_ID = int(os.getenv("CYCUIUBM_CHANNEL_ID", 0))  # 中原國商頻道 ID
+HWIS_CHANNEL_ID = int(os.getenv("HWIS_CHANNEL_ID", 0))  # 作業公告頻道 ID
 
 # 管理員通知設定
 ADMIN_CHANNEL_ID = int(os.getenv("ADMIN_CHANNEL_ID", 0))  # 管理員通知頻道 ID
@@ -36,11 +37,13 @@ ADMIN_ROLE_ID = int(os.getenv("ADMIN_ROLE_ID", 0))  # 管理員身分組 ID（�
 NCUFN_ROLE_NAME = "NCUFN"  # 中央大學財金系
 NCUEC_ROLE_NAME = "NCUEC"  # 中央大學經濟系
 CYCUIUBM_ROLE_NAME = "CYCUIUBM"  # 中原大學國際商學學士學位學程
+HWIS_ROLE_NAME = "HWIS"  # 作業公告身分組
 
 # 可選：如果您有特定的身分組 ID，可以在這裡設定
 NCUFN_ROLE_ID = int(os.getenv("NCUFN_ROLE_ID", 0))  # 可選：NCUFN 身分組 ID
 NCUEC_ROLE_ID = int(os.getenv("NCUEC_ROLE_ID", 0))  # 可選：NCUEC 身分組 ID
 CYCUIUBM_ROLE_ID = int(os.getenv("CYCUIUBM_ROLE_ID", 0))  # 可選：CYCUIUBM 身分組 ID
+HWIS_ROLE_ID = int(os.getenv("HWIS_ROLE_ID", 0))  # 可選：HWIS 身分組 ID
 
 # 資料庫設定
 DB_PATH = "homework.db"
