@@ -1,6 +1,7 @@
 import os
 import re
 import asyncio
+import unicodedata
 from concurrent.futures import ThreadPoolExecutor
 from googleapiclient.discovery import build
 from googleapiclient.http import MediaFileUpload
@@ -58,19 +59,55 @@ class FileHandler:
             print(f"❌ Google Drive 服務初始化失敗: {e}")
             self.drive_service = None
 
+    def _list_folder_contents(self, parent_id):
+        """列出指定父資料夾下的所有子資料夾和檔案名稱（用於除錯）"""
+        if not self.drive_service:
+            print("❌ Google Drive 服務未初始化")
+            return
+
+        try:
+            query = f"'{parent_id}' in parents and trashed=false"
+            results = self.drive_service.files().list(q=query, fields="files(name, mimeType)").execute()
+            items = results.get("files", [])
+
+            folders = [item['name'] for item in items if item['mimeType'] == 'application/vnd.google-apps.folder']
+            files = [item['name'] for item in items if item['mimeType'] != 'application/vnd.google-apps.folder']
+
+            print(f"📁 父資料夾 ID: {parent_id} 的內容：")
+            print(f"   子資料夾 ({len(folders)} 個): {folders}")
+            print(f"   檔案 ({len(files)} 個): {files}")
+        except Exception as e:
+            print(f"❌ 列出資料夾內容失敗: {e}")
+
     def _get_or_create_folder_sync(self, folder_name, parent_id):
         """同步版本：獲取或創建資料夾（在執行緒池中執行）"""
         if not self.drive_service:
             return None
 
         try:
-            # 搜尋現有資料夾
+            # 清理資料夾名稱（移除前後空格，並確保一致性）
+            original_name = folder_name
+            folder_name = folder_name.strip()
+            folder_name = ''.join(c for c in folder_name if c.isprintable() and not unicodedata.category(c).startswith('C') and c not in '\u200b\u00a0\u3000')
+            
+            print(f"🔍 原始名稱: '{repr(original_name)}' -> 清理後: '{repr(folder_name)}'")
+            
+            # 搜尋現有資料夾（在指定父資料夾下）
             query = f"name='{folder_name}' and mimeType='application/vnd.google-apps.folder' and '{parent_id}' in parents and trashed=false"
             results = self.drive_service.files().list(q=query, fields="files(id, name)").execute()
             items = results.get("files", [])
 
+            print(f"🔍 搜尋資料夾: '{folder_name}' 在父資料夾 ID: {parent_id}")
+            print(f"📊 找到 {len(items)} 個匹配資料夾")
+
+            # 找資料夾測試用
+            # if not items:
+            #     # 如果找不到，列出父資料夾內容以便比較
+            #     self._list_folder_contents(parent_id)
+
             if items:
-                print(f"📁 找到現有資料夾: {folder_name}")
+                # 如果找到現有資料夾，使用第一個（Google Drive 允許同名，但我們只用第一個）
+                print(f"📁 使用現有資料夾: {folder_name} (ID: {items[0]['id']})")
                 return items[0]["id"]
             else:
                 # 創建新資料夾
@@ -80,10 +117,12 @@ class FileHandler:
                     "parents": [parent_id]
                 }
                 folder = self.drive_service.files().create(body=file_metadata, fields="id").execute()
-                print(f"📁 已創建新資料夾: {folder_name}")
+                print(f"📁 已創建新資料夾: {folder_name} (ID: {folder.get('id')})")
                 return folder.get("id")
         except Exception as e:
             print(f"❌ 獲取或創建資料夾失敗: {e}")
+            import traceback
+            traceback.print_exc()
             return None
 
     async def get_or_create_folder(self, folder_name, parent_id):
@@ -103,6 +142,11 @@ class FileHandler:
             return None
 
         try:
+            # 清理從 HTML 或外部來源的名稱，確保完全移除隱藏字元
+            question_title = self._clean_folder_name(question_title)
+            class_name = self._clean_folder_name(class_name)
+            student_id = self._clean_folder_name(student_id)
+            
             # 1. 創建或獲取題目資料夾（第一層）
             question_folder_id = self._get_or_create_folder_sync(question_title, base_folder_id)
             if not question_folder_id:
@@ -137,6 +181,21 @@ class FileHandler:
             traceback.print_exc()
             return None
 
+    # 新增方法：徹底清理資料夾名稱
+    def _clean_folder_name(self, name):
+        """徹底清理名稱，移除所有隱藏字元和不一致性"""
+        if not name:
+            return name
+        # Unicode 正規化（處理組合字元）
+        name = unicodedata.normalize('NFKC', name)
+        # 移除前後空格
+        name = name.strip()
+        # 移除不可見字元和控制字元
+        name = ''.join(c for c in name if c.isprintable() and not unicodedata.category(c).startswith('C'))
+        # 移除特定隱藏字元
+        name = name.replace('\u200b', '').replace('\u00a0', '').replace('\u3000', '')
+        return name
+
     async def upload_to_drive(self, file_path, filename, question_title, class_name, student_id, is_report=False):
         """
         上傳檔案到 Google Drive
@@ -154,6 +213,9 @@ class FileHandler:
         """
         loop = asyncio.get_event_loop()
         
+        # 根據 is_report 選擇基礎資料夾 ID
+        base_folder_id = REPORTS_FOLDER_ID if is_report else UPLOADS_FOLDER_ID
+        
         try:
             # 在執行緒池中執行同步上傳
             file_id = await loop.run_in_executor(
@@ -164,7 +226,7 @@ class FileHandler:
                 question_title,
                 class_name,
                 student_id,
-                REPORTS_FOLDER_ID
+                base_folder_id
             )
             
             file_type = "報告" if is_report else "作業檔案"
@@ -190,6 +252,13 @@ class FileHandler:
     async def save_upload_file(file, user_id, uploads_student_dir, filename, question_title, class_name, student_id, db_student_name, attempt_number):
         """保存上傳檔案到本地，然後上傳到 Google Drive"""
         try:
+            # 對從 HTML 抓取或傳入的名稱進行 strip
+            filename = filename.strip() if filename else filename
+            question_title = question_title.strip()
+            class_name = class_name.strip()
+            student_id = student_id.strip()
+            db_student_name = db_student_name.strip()
+            
             # ✅ 修改：建立與雲端相同的目錄結構
             # UPLOADS_DIR / question_title / class_name / student_id
             safe_question = FileHandler.get_safe_filename(question_title)
@@ -213,10 +282,10 @@ class FileHandler:
             drive_id = await handler.upload_to_drive(
                 local_path,
                 new_filename,
-                question_title,  # ✅ 添加 question_title 參數
+                question_title,
                 class_name,
                 student_id,
-                UPLOADS_FOLDER_ID
+                is_report=False  # 明確指定為作業檔案
             )
             
             return local_path, drive_id

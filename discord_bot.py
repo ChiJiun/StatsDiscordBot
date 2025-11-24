@@ -1526,8 +1526,8 @@ class HomeworkBot:
             
             class_id = class_data[0]
 
-            # 步驟3：查詢學生資料（限制在對應班级）
-            student_data = self.db.get_student_by_student_id_and_class_with_password(student_number, class_id)
+            # 步驟3：查詢學生資料（限制在對應班級）
+            student_data = self.db.get_student_by_student_id_with_password_and_class(student_number, class_id)
             if not student_data:
                 print(f"❌ 在班級 {user_class_name} 中找不到學號 {student_number}")
                 return False
@@ -1535,7 +1535,7 @@ class HomeworkBot:
             print(f"✅ 找到學生資料: {student_data}")
 
             # 步驟4：解析學生資料
-            student_number_db, student_name, discord_id_in_db, stored_password = student_data
+            student_id, student_name, discord_id_in_db, class_id, class_name, stored_password = student_data
 
             # 步驟5：驗證密碼
             if stored_password != password:
