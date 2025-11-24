@@ -170,8 +170,8 @@ class HomeworkBot:
             title="🎓 歡迎使用統計學AI評分系統\nWelcome to Statistics AI Grading System",
             description="✨ **歡迎同學們！請仔細閱讀以下重要提醒**\n"
             "✨ **Welcome! Please read the following important reminders carefully**\n\n"
-            "📍 **開始使用前，請先將機器人加入好友**\n"
-            "📍 **Before using, please add the bot as a friend**\n\n"
+            "📍 **開始使用前，請先將機器人加入好友，確保可以收到訊息**\n"
+            "📍 **Before using, please add the bot as a friend to make sure you can receive messages**\n\n"
             "💡 **請根據您的學校選擇對應的身分組**\n"
             "💡 **Please choose the role corresponding to your school**",
             color=0x3498DB,
@@ -187,6 +187,12 @@ class HomeworkBot:
             "• `!login 學號 密碼` - 登入系統 / Login to system\n"
             "• **直接上傳作業 HTML 檔案** - 系統會自動評分\n"
             "• **Upload HTML homework file** - Auto grading",
+            inline=False,
+        )
+        
+        embed.add_field(
+            name="作答網站 Answer Website",
+            value="[點擊進入作答網站 / Click to enter answer website](https://chijiun.github.io/StatsAnswerFormatter/)",
             inline=False,
         )
 
@@ -685,6 +691,52 @@ class HomeworkBot:
                 f"⏳ 請稍候，系統正在進行AI評分...\n"
                 f"⏳ Please wait, AI grading in progress..."
             )
+
+            # ========== 新增：將提交記錄寫入資料庫 ==========
+            print(f"💾 正在將提交記錄寫入資料庫...")
+            try:
+                # ✅ 修正參數名稱，與 database.py 的方法定義一致
+                db_insert_success = self.db.insert_submission(
+                    discord_id=user_id,  # ✅ Discord ID（查詢鍵）
+                    student_name=db_student_name,
+                    student_number=student_number or student_id_from_html,  # ✅ 學號（僅供顯示）
+                    question_title=html_title,
+                    attempt_number=attempt_number,
+                    html_path=save_path
+                )
+                
+                if db_insert_success:
+                    print(f"✅ 提交記錄已成功寫入資料庫")
+                    print(f"   - Discord ID: {user_id}")
+                    print(f"   - 學號: {student_number or student_id_from_html}")
+                    print(f"   - 題目: {html_title}")
+                    print(f"   - 嘗試次數: {attempt_number}")
+                else:
+                    print(f"⚠️ 提交記錄寫入資料庫失敗（方法返回 False）")
+                    # 即使資料庫寫入失敗，仍繼續發送報告給用戶
+                    
+            except TypeError as type_error:
+                print(f"❌ 參數類型錯誤: {type_error}")
+                import traceback
+                traceback.print_exc()
+                await processing_msg.edit(
+                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生參數錯誤\n"
+                            f"⚠️ Report generated, but database write parameter error occurred\n"
+                            f"錯誤訊息 / Error: {type_error}\n\n"
+                            f"請聯繫管理員檢查系統設定"
+                )
+            except Exception as db_error:
+                print(f"❌ 資料庫寫入錯誤: {db_error}")
+                import traceback
+                traceback.print_exc()
+                # 即使資料庫寫入失敗，仍繼續發送報告給用戶
+                await processing_msg.edit(
+                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生錯誤\n"
+                            f"⚠️ Report generated, but database write error occurred\n"
+                            f"錯誤訊息 / Error: {db_error}"
+                )
+            
+            # ========== 結束資料庫寫入 ==========
 
             # ✅ 記錄開始時間
             start_time = time.time()
