@@ -651,6 +651,7 @@ class HomeworkBot:
 
             if save_path is None:
                 # 本地保存失敗
+                await message.author.send("❌ **檔案保存失敗 / File Save Failed**\n\n系統無法保存您的上傳檔案，請稍後再試。\nSystem cannot save your uploaded file, please try again later.")
                 await self._notify_administrators(
                     "本地保存失敗",
                     f"用戶: {db_student_name}\n檔案: {file.filename}\n班級: {class_name}\n本地路徑: {save_path}",
