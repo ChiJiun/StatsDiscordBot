@@ -463,6 +463,56 @@ class DatabaseManager:
             print(f"查找學生時發生錯誤: {e}")
             return None
 
+    def get_or_create_student(self, student_name, student_number, class_id, password=None, discord_id=None):
+        """
+        檢查學生是否存在，如果存在則更新密碼，如果不存在則創建新學生
+        
+        Args:
+            student_name (str): 學生姓名
+            student_number (str): 學號（可選）
+            class_id (int): 班級ID
+            password (str): 密碼（可選）
+            discord_id (str): Discord ID（可選）
+            
+        Returns:
+            int or None: 學生ID，如果操作失敗返回None
+        """
+        try:
+            # 優先通過學號檢查（如果提供學號）
+            if student_number:
+                existing = self.get_student_by_student_id_with_password_and_class(student_number, class_id)
+                if existing:
+                    # 更新密碼
+                    self.cur.execute(
+                        "UPDATE Students SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE student_number = ? AND class_id = ?",
+                        (password, student_number, class_id)
+                    )
+                    self.conn.commit()
+                    return existing[0]  # 返回現有學生ID
+            
+            # 如果沒有學號或通過學號找不到，通過姓名和班級檢查
+            self.cur.execute(
+                "SELECT student_id FROM Students WHERE student_name = ? AND class_id = ?",
+                (student_name, class_id)
+            )
+            existing = self.cur.fetchone()
+            
+            if existing:
+                # 更新密碼
+                self.cur.execute(
+                    "UPDATE Students SET password = ?, updated_at = CURRENT_TIMESTAMP WHERE student_id = ?",
+                    (password, existing[0])
+                )
+                self.conn.commit()
+                return existing[0]  # 返回現有學生ID
+            
+            # 不存在，創建新學生
+            return self.create_student(student_name, discord_id, class_id, password, student_number)
+            
+        except Exception as e:
+            print(f"❌ 處理學生資料時發生錯誤: {e}")
+            self.conn.rollback()
+            return None
 
 def main():
     """主程式 - 用於獨立運行資料庫管理"""

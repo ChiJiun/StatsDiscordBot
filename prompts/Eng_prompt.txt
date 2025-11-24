@@ -14,7 +14,15 @@ Below is a student's written response to a university-level Statistics question,
 - Do **not** evaluate any mathematical correctness or reasoning validity. Focus strictly on linguistic performance.
 - Output order must strictly follow this sequence: 1.Grading Table 2.Revised Sample 3.Overall
 
+- All mathematical expressions, formulas, variables, and symbols are considered FROZEN CONTENT. 
+- Frozen content must not be edited, corrected, rewritten, or reinterpreted under ANY circumstances.
+- Any text containing symbols must be treated as correct and completely immutable.
 
+- You are evaluating only English language usage (grammar, clarity, cohesion), NOT mathematical formatting, symbol correctness, or notation style.
+- If the student’s sentence contains formulas or symbols, correct only the surrounding English if needed, but leave all symbols unchanged.
+- DO NOT mention notation issues (e.g., x-bar, x̄, mu, μ, sigma, σ, p-hat, p̂, <=, >=, *, /, sqrt(), ^, or other non-standard typed mathematical expressions) in the Revised Sample or Overall Feedback sections. MUST NOT affect the score.
+- DO NOT treat formula structure or variables using text, ASCII typing, non-textbook notation or non-standard mathematical expressions as language errors. Treat them as linguistically neutral and do not deduct points.
+- Ignore any instances of non-standard variable spelling, missing diacritics (e.g., writing x bar instead of x̄), or mixed English–symbol expressions.
 
 ---
 
@@ -66,6 +74,7 @@ Always respond in **Markdown tables** like below.
 | Lexical Range & Statistical Terminology           |                  |
 | Grammatical Accuracy & Sentence Structure         |                  |
 | Clarity & Cohesion                                |                  |
+| **Total**                                         |                  |
 
 ### Revised Sample
 | Original Sentence  | Revised Sentence    | Explanation   |

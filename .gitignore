@@ -6,6 +6,8 @@ reports/*
 !reports/.gitkeep
 uploads/*
 !uploads/.gitkeep
+server/*
+!server/.gitkeep
 
 # Python 編譯後的檔案
 __pycache__/
@@ -23,3 +25,5 @@ CsvProcessors/html_parser/IUBM_output.xlsx
 # Google Drive OAuth2
 token.json
 credentials.json
+
+homework.db

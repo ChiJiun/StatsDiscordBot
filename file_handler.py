@@ -96,24 +96,29 @@ class FileHandler:
             parent_id
         )
 
-    def _upload_to_drive_sync(self, file_path, filename, class_name, student_id, base_folder_id):
+    def _upload_to_drive_sync(self, file_path, filename, question_title, class_name, student_id, base_folder_id):
         """同步版本：上傳檔案到 Google Drive（在執行緒池中執行）"""
         if not self.drive_service:
             print("❌ Google Drive 服務未初始化")
             return None
 
         try:
-            # 創建或獲取班級資料夾（同步版本）
-            class_folder_id = self._get_or_create_folder_sync(class_name, base_folder_id)
+            # 1. 創建或獲取題目資料夾（第一層）
+            question_folder_id = self._get_or_create_folder_sync(question_title, base_folder_id)
+            if not question_folder_id:
+                return None
+
+            # 2. 創建或獲取班級資料夾（第二層）
+            class_folder_id = self._get_or_create_folder_sync(class_name, question_folder_id)
             if not class_folder_id:
                 return None
 
-            # 創建或獲取學號資料夾（同步版本）
+            # 3. 創建或獲取學號資料夾（第三層）
             student_folder_id = self._get_or_create_folder_sync(student_id, class_folder_id)
             if not student_folder_id:
                 return None
 
-            # 上傳檔案到學號資料夾
+            # 4. 上傳檔案到學號資料夾
             file_metadata = {"name": filename, "parents": [student_folder_id]}
 
             media = MediaFileUpload(file_path, mimetype="text/html", resumable=True)
@@ -124,7 +129,7 @@ class FileHandler:
             ).execute()
 
             file_id = file.get("id")
-            print(f"✅ 檔案已上傳到 Google Drive: /{class_name}/{student_id}/{filename}")
+            print(f"✅ 檔案已上傳到 Google Drive: /{question_title}/{class_name}/{student_id}/{filename}")
             return file_id
         except Exception as e:
             print(f"❌ 上傳到 Google Drive 失敗: {e}")
@@ -132,18 +137,44 @@ class FileHandler:
             traceback.print_exc()
             return None
 
-    async def upload_to_drive(self, file_path, filename, class_name, student_id, base_folder_id):
-        """非同步版本：上傳檔案到 Google Drive"""
+    async def upload_to_drive(self, file_path, filename, question_title, class_name, student_id, is_report=False):
+        """
+        上傳檔案到 Google Drive
+        
+        Args:
+            file_path: 本地檔案路徑
+            filename: 檔案名稱
+            question_title: 題目標題
+            class_name: 班級名稱
+            student_id: 學號
+            is_report: 是否為報告檔案 (預設 False)
+        
+        Returns:
+            str: 上傳後的檔案 ID
+        """
         loop = asyncio.get_event_loop()
-        return await loop.run_in_executor(
-            self._executor,
-            self._upload_to_drive_sync,
-            file_path,
-            filename,
-            class_name,
-            student_id,
-            base_folder_id
-        )
+        
+        try:
+            # 在執行緒池中執行同步上傳
+            file_id = await loop.run_in_executor(
+                self._executor,
+                self._upload_to_drive_sync,
+                file_path,
+                filename,
+                question_title,
+                class_name,
+                student_id,
+                REPORTS_FOLDER_ID
+            )
+            
+            file_type = "報告" if is_report else "作業檔案"
+            print(f"✅ {file_type}已上傳到 Google Drive: {file_id}")
+            return file_id
+            
+        except Exception as e:
+            file_type = "報告" if is_report else "作業檔案"
+            print(f"❌ 上傳{file_type}到 Google Drive 失敗: {e}")
+            raise
 
     @staticmethod
     def get_safe_filename(text):
@@ -156,14 +187,20 @@ class FileHandler:
         return safe_text
 
     @staticmethod
-    async def save_upload_file(file, user_id, uploads_student_dir, filename, class_name, student_id, db_student_name, question_title, attempt_number):
+    async def save_upload_file(file, user_id, uploads_student_dir, filename, question_title, class_name, student_id, db_student_name, attempt_number):
         """保存上傳檔案到本地，然後上傳到 Google Drive"""
         try:
-            # 確保本地目錄存在
+            # ✅ 修改：建立與雲端相同的目錄結構
+            # UPLOADS_DIR / question_title / class_name / student_id
+            safe_question = FileHandler.get_safe_filename(question_title)
+            question_dir = os.path.join(UPLOADS_DIR, safe_question)
+            class_dir = os.path.join(question_dir, class_name)
+            uploads_student_dir = os.path.join(class_dir, student_id)
+            
+            # 確保本地目錄存在（包含題目和班級層級）
             os.makedirs(uploads_student_dir, exist_ok=True)
 
             # 生成新的檔案名稱：學號_班級_姓名_標題_次數
-            safe_question = FileHandler.get_safe_filename(question_title)
             new_filename = f"{student_id}_{class_name}_{db_student_name}_{safe_question}_第{attempt_number}次.html"
             local_path = os.path.join(uploads_student_dir, new_filename)
 
@@ -176,6 +213,7 @@ class FileHandler:
             drive_id = await handler.upload_to_drive(
                 local_path,
                 new_filename,
+                question_title,  # ✅ 添加 question_title 參數
                 class_name,
                 student_id,
                 UPLOADS_FOLDER_ID
@@ -204,7 +242,14 @@ class FileHandler:
     ):
         """生成並保存 HTML 報告到本地和 Google Drive"""
         try:
-            # 確保本地目錄存在
+            # ✅ 修改：建立與雲端相同的目錄結構
+            # REPORTS_DIR / question_title / class_name / student_id
+            safe_question = FileHandler.get_safe_filename(question_title)
+            question_dir = os.path.join(REPORTS_DIR, safe_question)
+            class_dir = os.path.join(question_dir, class_name)
+            reports_student_dir = os.path.join(class_dir, student_id)
+            
+            # 確保本地目錄存在（包含題目和班級層級）
             os.makedirs(reports_student_dir, exist_ok=True)
 
             # 生成 HTML 報告（在執行緒池中執行，避免阻塞）
@@ -240,9 +285,10 @@ class FileHandler:
             drive_id = await handler.upload_to_drive(
                 local_path,
                 report_filename,
+                question_title,
                 class_name,
                 student_id,
-                REPORTS_FOLDER_ID
+                is_report=True
             )
 
             return local_path, report_filename, drive_id

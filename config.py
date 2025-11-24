@@ -7,7 +7,7 @@ load_dotenv()
 # Discord 和 OpenAI 設定
 DISCORD_TOKEN = os.getenv("DISCORD_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
-MODEL = "gpt-4o-mini"
+MODEL = "gpt-5-mini"
 
 # Google Drive 設定（OAuth2）
 UPLOADS_FOLDER_ID = os.getenv("UPLOADS_FOLDER_ID")
@@ -27,28 +27,29 @@ WELCOME_CHANNEL_ID = int(os.getenv("WELCOME_CHANNEL_ID", 0))  # 歡迎頻道 ID
 NCUFN_CHANNEL_ID = int(os.getenv("NCUFN_CHANNEL_ID", 0))  # 中央財金系頻道 ID
 NCUEC_CHANNEL_ID = int(os.getenv("NCUEC_CHANNEL_ID", 0))  # 中央經濟系頻道 ID
 CYCUIUBM_CHANNEL_ID = int(os.getenv("CYCUIUBM_CHANNEL_ID", 0))  # 中原國商頻道 ID
+HWIS_CHANNEL_ID = int(os.getenv("HWIS_CHANNEL_ID", 0))  # 作業公告頻道 ID
+
+# 管理員通知設定
+ADMIN_CHANNEL_ID = int(os.getenv("ADMIN_CHANNEL_ID", 0))  # 管理員通知頻道 ID
+ADMIN_ROLE_ID = int(os.getenv("ADMIN_ROLE_ID", 0))  # 管理員身分組 ID（用於提及）
 
 # Discord 身分組設定
 NCUFN_ROLE_NAME = "NCUFN"  # 中央大學財金系
 NCUEC_ROLE_NAME = "NCUEC"  # 中央大學經濟系
 CYCUIUBM_ROLE_NAME = "CYCUIUBM"  # 中原大學國際商學學士學位學程
+HWIS_ROLE_NAME = "HWIS"  # 作業公告身分組
 
 # 可選：如果您有特定的身分組 ID，可以在這裡設定
 NCUFN_ROLE_ID = int(os.getenv("NCUFN_ROLE_ID", 0))  # 可選：NCUFN 身分組 ID
 NCUEC_ROLE_ID = int(os.getenv("NCUEC_ROLE_ID", 0))  # 可選：NCUEC 身分組 ID
 CYCUIUBM_ROLE_ID = int(os.getenv("CYCUIUBM_ROLE_ID", 0))  # 可選：CYCUIUBM 身分組 ID
+HWIS_ROLE_ID = int(os.getenv("HWIS_ROLE_ID", 0))  # 可選：HWIS 身分組 ID
 
 # 資料庫設定
 DB_PATH = "homework.db"
 
 # 目錄設定
-PROMPTS_DIR = "prompts"  # 提示檔案存放目錄
-
-# 預設 Prompt 檔案路徑配置
-DEFAULT_PROMPTS = {
-    "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-    "statistics": os.path.join(PROMPTS_DIR, "Stats_prompt.txt")
-}
+PROMPTS_DIR = os.path.join(BASE_DIR, "prompts")
 
 # 特定題目的 Prompt 檔案路徑配置（必須是字典格式，包含 english 和 statistics）
 SPECIFIC_PROMPTS = {
@@ -62,15 +63,19 @@ SPECIFIC_PROMPTS = {
     },
     "SOCS_S-M ratio": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio_Stats_prompt.txt")
+        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio.txt")
     },
     "SOCS_S-M ratio-2": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio_Stats_prompt.txt")
+        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio.txt")
     },
     "Four-Step_Simulation of random guessing": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Simulation_Stats_prompt.txt")
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Simulation.txt")
+    },
+    "Four-Step_Proportion_App or in-store": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Proportion.txt")
     }
 }
 
