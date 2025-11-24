@@ -242,7 +242,14 @@ class FileHandler:
     ):
         """生成並保存 HTML 報告到本地和 Google Drive"""
         try:
-            # 確保本地目錄存在
+            # ✅ 修改：建立與雲端相同的目錄結構
+            # REPORTS_DIR / question_title / class_name / student_id
+            safe_question = FileHandler.get_safe_filename(question_title)
+            question_dir = os.path.join(REPORTS_DIR, safe_question)
+            class_dir = os.path.join(question_dir, class_name)
+            reports_student_dir = os.path.join(class_dir, student_id)
+            
+            # 確保本地目錄存在（包含題目和班級層級）
             os.makedirs(reports_student_dir, exist_ok=True)
 
             # 生成 HTML 報告（在執行緒池中執行，避免阻塞）
