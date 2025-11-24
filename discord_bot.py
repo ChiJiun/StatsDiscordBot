@@ -191,7 +191,7 @@ class HomeworkBot:
         )
         
         embed.add_field(
-            name="作答網站 Answer Website",
+            name="🔗 作答網站 Answer Website",
             value="[點擊進入作答網站 / Click to enter answer website](https://chijiun.github.io/StatsAnswerFormatter/)",
             inline=False,
         )
@@ -815,7 +815,7 @@ class HomeworkBot:
                     student_id=student_number or student_id_from_html,
                 )
 
-                if not report_path or not report_drive_id:
+                if not report_path:
                     await processing_msg.edit(content="❌ 報告生成失敗 / Report generation failed")
                     return
                 
