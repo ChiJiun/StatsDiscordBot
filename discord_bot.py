@@ -15,13 +15,16 @@ from config import (
     NCUFN_CHANNEL_ID,
     NCUEC_CHANNEL_ID,
     CYCUIUBM_CHANNEL_ID,
+    HWIS_CHANNEL_ID,  # 新增 HWIS 頻道 ID
     ADMIN_CHANNEL_ID,
     NCUFN_ROLE_NAME,
     NCUEC_ROLE_NAME,
     CYCUIUBM_ROLE_NAME,
+    HWIS_ROLE_NAME,  # 新增 HWIS 身分組名稱
     NCUFN_ROLE_ID,
     NCUEC_ROLE_ID,
     CYCUIUBM_ROLE_ID,
+    HWIS_ROLE_ID,  # 新增 HWIS 身分組 ID
     ADMIN_ROLE_ID
 )
 from database import DatabaseManager
@@ -47,6 +50,7 @@ class HomeworkBot:
             NCUFN_ROLE_NAME: "NCUFN",
             NCUEC_ROLE_NAME: "NCUEC",
             CYCUIUBM_ROLE_NAME: "CYCUIUBM",
+            HWIS_ROLE_NAME: "HWIS",  # 新增 HWIS 班級
         }
 
         # 班級頻道 ID 設定
@@ -55,6 +59,7 @@ class HomeworkBot:
                 "NCUFN": NCUFN_CHANNEL_ID,
                 "NCUEC": NCUEC_CHANNEL_ID,
                 "CYCUIUBM": CYCUIUBM_CHANNEL_ID,
+                "HWIS": HWIS_CHANNEL_ID,  # 新增 HWIS 頻道
             }
         except ImportError:
             print("⚠️ 未設定班級頻道 ID，將允許在任何頻道使用")
@@ -179,10 +184,15 @@ class HomeworkBot:
 
         embed.add_field(name="🏦 中央大學財金系同學 / NCU Finance", value="請使用指令 / Use command: `!join NCUFN`", inline=True)
         embed.add_field(name="📈 中央大學經濟系同學 / NCU Economics", value="請使用指令 / Use command: `!join NCUEC`", inline=True)
+        # 插入一個隱藏欄位來強制換行
+        embed.add_field(name="", value="", inline=False)
         embed.add_field(name="🌐 中原大學國商學程同學 / CYCU IUBM", value="請使用指令 / Use command: `!join CYCUIUBM`", inline=True)
+        embed.add_field(name="📊 HWIS 同學 / HWIS Students", value="請使用指令 / Use command: `!join HWIS`", inline=True)
 
+        # 插入一個隱藏欄位來強制換行
+        embed.add_field(name="", value="", inline=False)
         embed.add_field(
-            name="📚 系統功能說明 / System Features",
+            name="\n📚 系統功能說明 / System Features",
             value="• `!help` - 查看完整指令說明 / View complete instructions\n"
             "• `!login 學號 密碼` - 登入系統 / Login to system\n"
             "• **直接上傳作業 HTML 檔案** - 系統會自動評分\n"
@@ -190,6 +200,8 @@ class HomeworkBot:
             inline=False,
         )
         
+        # 插入一個隱藏欄位來強制換行
+        embed.add_field(name="", value="", inline=False)
         embed.add_field(
             name="🔗 作答網站 Answer Website",
             value="[點擊進入作答網站 / Click to enter answer website](https://chijiun.github.io/StatsAnswerFormatter/)",
@@ -930,6 +942,7 @@ class HomeworkBot:
                 "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
                 "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
                 "CYCUIUBM": (CYCUIUBM_ROLE_ID, CYCUIUBM_ROLE_NAME),
+                "HWIS": (HWIS_ROLE_ID, HWIS_ROLE_NAME),  # 新增 HWIS 映射
             }
             
             if class_name not in role_mapping:
@@ -1291,6 +1304,7 @@ class HomeworkBot:
                 "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
                 "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
                 "CYCUIUBM": (CYCUIUBM_ROLE_ID, CYCUIUBM_ROLE_NAME),
+                "HWIS": (HWIS_ROLE_ID, HWIS_ROLE_NAME),  # 新增 HWIS 驗證
             }
             
             if role_type not in valid_roles:
@@ -1300,7 +1314,8 @@ class HomeworkBot:
                     f"Please use one of the following codes:\n\n"
                     f"• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
                     f"• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
-                    f"• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM"
+                    f"• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM\n"
+                    f"• `!join HWIS` - HWIS / HWIS"  # 新增 HWIS 選項
                 )
                 try:
                     await message.delete()
