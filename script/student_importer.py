@@ -151,13 +151,13 @@ class StudentImporter:
                     # 移除重複檢查，允許所有學生直接導入
                     # 這樣可以支援跨班級重複，甚至同班級內重複
 
-                    # 創建學生記錄 - 確保參數順序正確
-                    db_student_id = self.db.create_student(
+                    # 創建或更新學生記錄 - 確保參數順序正確
+                    db_student_id = self.db.get_or_create_student(
                         student_name=student_name,
-                        discord_id=discord_id,  # 在導入時通常為None
+                        student_number=student_number,
                         class_id=class_id,
                         password=password,
-                        student_number=student_number,
+                        discord_id=discord_id,  # 在導入時通常為None
                     )
 
                     if db_student_id:
@@ -173,7 +173,7 @@ class StudentImporter:
                         print(f"✅ 已導入: {', '.join(info_parts)} -> {class_name} (DB ID: {db_student_id})")
                     else:
                         skipped_count += 1
-                        print(f"⚠️ 跳過學生: {student_name} (可能存在重複資料)")
+                        print(f"⚠️ 跳過學生: {student_name} (處理失敗)")
 
                 except Exception as e:
                     error_count += 1
