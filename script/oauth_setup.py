@@ -15,7 +15,8 @@ def get_oauth_creds():
         else:
             # 固定 port=8080，授權 URI 在 GCP Console 裡只要加 http://localhost:8080/
             flow = InstalledAppFlow.from_client_secrets_file("credentials.json", SCOPES)
-            creds = flow.run_local_server(port=8080)
+            # 添加 prompt='consent' 以確保獲取 refresh_token
+            creds = flow.run_local_server(prompt='consent')
         with open("token.json", "w") as token:
             token.write(creds.to_json())
     return creds
