@@ -35,7 +35,7 @@ class HomeworkBot:
             NCUFN_ROLE_NAME: "NCUFN",
             NCUEC_ROLE_NAME: "NCUEC",
             CYCUIUBM_ROLE_NAME: "CYCUIUBM",
-            HWIS_ROLE_NAME: "HWIS",  # 新增 HWIS 班級
+            HWIS_ROLE_NAME: "HWIS",
         }
 
         # 班級頻道 ID 設定
@@ -44,7 +44,7 @@ class HomeworkBot:
                 "NCUFN": NCUFN_CHANNEL_ID,
                 "NCUEC": NCUEC_CHANNEL_ID,
                 "CYCUIUBM": CYCUIUBM_CHANNEL_ID,
-                "HWIS": HWIS_CHANNEL_ID,  # 新增 HWIS 頻道
+                "HWIS": HWIS_CHANNEL_ID,
             }
         except ImportError:
             print("⚠️ 未設定班級頻道 ID，將允許在任何頻道使用")
@@ -76,23 +76,6 @@ class HomeworkBot:
         if user_class and user_class in self.class_channels:
             return user_class, self.class_channels[user_class]
         return user_class, None
-
-    def is_bot_welcome_message(self, message):
-        """檢查是否為機器人歡迎訊息"""
-        if message.author != self.client.user:
-            return False
-        
-        if not message.embeds:
-            return False
-        
-        embed = message.embeds[0]
-        welcome_titles = [
-            "歡迎使用統計學AI評分系統",
-            "歡迎來到 HTML 作業評分系統", 
-            "Welcome to Statistics AI Grading System"
-        ]
-        
-        return any(title in embed.title for title in welcome_titles)
 
     async def notify_administrators(self, title, description, error_details=None, severity="warning"):
         """發送通知給管理員"""
@@ -273,11 +256,8 @@ class HomeworkBot:
 
     async def on_message(self, message):
         """處理收到的 Discord 訊息事件"""
+        # 忽略機器人自己的訊息
         if message.author.bot:
-            # 檢查是否為機器人歡迎訊息，如果是則保留
-            if self.is_bot_welcome_message(message):
-                return
-            # 其他機器人訊息也忽略
             return
 
         user_id = str(message.author.id)
@@ -294,14 +274,15 @@ class HomeworkBot:
 
             # 對於其他私訊，引導用戶到班級頻道
             await message.author.send(
-                "💬 **請勿在私訊中使用系統功能**\n"
-                "💬 **Please do not use system features in DM**\n\n"
-                "🏫 **請前往您的班級專屬頻道進行以下操作：**\n"
+                "💡 **您可以在私訊中使用 `!login 學號 密碼` 登入系統**\n"
+                "💡 **You can use `!login student_id password` in DM to login**"
+                "💬 **請勿在私訊中使用其他功能**\n"
+                "💬 **Please do not use other features in DM**\n\n"
+                "🏫 **請前往您的班級頻道進行以下操作：**\n"
                 "🏫 **Please go to your class channel for the following operations:**\n\n"
                 "• 使用 `!help` 查看完整功能說明 / Use `!help` to view complete instructions\n"
                 "• 使用 `!join 學校身分` 選擇學校身分 / Use `!join school_identity` to choose school identity\n"
-                "💡 **您可以在私訊中使用 `!login 學號 密碼` 登入系統**\n"
-                "💡 **You can use `!login student_id password` in DM to login**"
+                "• 使用 `!my-submissions` 查看作業提交記錄 / Use `!my-submissions` to view submission history\n"
                 "• 📤 上傳 HTML 作業檔案進行評分 / Upload HTML homework file for grading\n"
             )
             return
@@ -343,25 +324,6 @@ class HomeworkBot:
                 "👋 **Welcome!** This channel is for choosing school identity.\n\n"
                 "請使用 `!join 學校代碼` 來選擇您的身分，完成後請到您的班級頻道使用其他功能。\n"
                 "Please use `!join school_code` to choose your identity, then go to your class channel to use other features."
-            )
-            should_delete = True
-
-        # 檢查是否在正確的班級頻道 (其他所有指令都需要在班級頻道)
-        elif not self.is_class_channel(message.channel.id, user_class):
-            channel_info = ""
-            if user_class and user_channel_id:
-                channel_info = f"\n🏫 **您的專屬班級頻道 / Your class channel：<#{user_channel_id}>**"
-            elif self.class_channels:
-                channel_list = "\n".join([f"• {cls}: <#{ch_id}>" for cls, ch_id in self.class_channels.items()])
-                channel_info = f"\n🏫 **班級頻道列表 / Class channels：**\n{channel_list}"
-
-            await message.author.send(
-                f"📍 **請在正確的頻道使用功能**\n"
-                f"📍 **Please use features in the correct channel**{channel_info}\n\n"
-                "🔧 **您可以使用的功能 / Available features：**\n"
-                "• `!help` - 查看詳細使用指南 / View detailed guide\n"
-                "• `!my-submissions` - 查看我的作業記錄 / View my submission history\n"
-                "• 📤 **上傳 HTML 作業檔案進行AI評分 / Upload HTML file for AI grading**"
             )
             should_delete = True
 
@@ -479,8 +441,12 @@ class HomeworkBot:
                 print(f"❌ 更新歡迎訊息錯誤: {e}")
 
             should_delete = True
+        
+        # 非歡迎、班級頻道(專門反應訊息)，忽略
+        elif not self.is_class_channel(message.channel.id, user_class):
+            return
 
-        # ✅ 修正：處理 HTML 檔案上傳
+        # 處理 HTML 檔案上傳
         elif message.attachments:
             html_attachment = None
             # 尋找是否有 HTML 檔案
@@ -490,7 +456,7 @@ class HomeworkBot:
                     break
             
             if html_attachment:
-                # ✅ 修正：傳遞正確的三個參數 (message, file, user_id)
+                # 傳遞正確的三個參數 (message, file, user_id)
                 await self.process_html_file(message, html_attachment, user_id)
                 # 這裡不需要 should_delete = True，因為 _process_html_file 內部會處理刪除
             else:
@@ -546,8 +512,8 @@ class HomeworkBot:
             if not student_data:
                 await message.author.send(
                     "🔐 **身分驗證需要 / Identity Verification Required**\n\n"
-                    "系統找不到您的學生資料，請先完成以下任一步驟：\n"
-                    "System cannot find your student data, please complete one of the following steps:\n\n"
+                    "系統找不到您的學生資料，請先完成以下步驟：\n"
+                    "System cannot find your student data, please complete the following steps:\n\n"
                     "1. 🏫 使用 `!join 學校代碼` 選擇學校身分\n"
                     "   Use `!join school_code` to choose school identity\n"
                     "2. 🔑 使用 `!login 學號 密碼` 登入現有帳戶\n"
@@ -645,7 +611,7 @@ class HomeworkBot:
                 user_id, 
                 uploads_student_dir, 
                 file.filename,
-                html_title,  # ✅ 添加 question_title (html_title)
+                html_title,
                 class_name, 
                 student_number or student_id_from_html,
                 db_student_name, 
@@ -689,52 +655,6 @@ class HomeworkBot:
                 f"⏳ Please wait, AI grading in progress..."
             )
 
-            # ========== 新增：將提交記錄寫入資料庫 ==========
-            print(f"💾 正在將提交記錄寫入資料庫...")
-            try:
-                # ✅ 修正參數名稱，與 database.py 的方法定義一致
-                db_insert_success = self.db.insert_submission(
-                    discord_id=user_id,  # ✅ Discord ID（查詢鍵）
-                    student_name=db_student_name,
-                    student_number=student_number or student_id_from_html,  # ✅ 學號（僅供顯示）
-                    question_title=html_title,
-                    attempt_number=attempt_number,
-                    html_path=save_path
-                )
-                
-                if db_insert_success:
-                    print(f"✅ 提交記錄已成功寫入資料庫")
-                    print(f"   - Discord ID: {user_id}")
-                    print(f"   - 學號: {student_number or student_id_from_html}")
-                    print(f"   - 題目: {html_title}")
-                    print(f"   - 嘗試次數: {attempt_number}")
-                else:
-                    print(f"⚠️ 提交記錄寫入資料庫失敗（方法返回 False）")
-                    # 即使資料庫寫入失敗，仍繼續發送報告給用戶
-                    
-            except TypeError as type_error:
-                print(f"❌ 參數類型錯誤: {type_error}")
-                import traceback
-                traceback.print_exc()
-                await processing_msg.edit(
-                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生參數錯誤\n"
-                            f"⚠️ Report generated, but database write parameter error occurred\n"
-                            f"錯誤訊息 / Error: {type_error}\n\n"
-                            f"請聯繫管理員檢查系統設定"
-                )
-            except Exception as db_error:
-                print(f"❌ 資料庫寫入錯誤: {db_error}")
-                import traceback
-                traceback.print_exc()
-                # 即使資料庫寫入失敗，仍繼續發送報告給用戶
-                await processing_msg.edit(
-                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生錯誤\n"
-                            f"⚠️ Report generated, but database write error occurred\n"
-                            f"錯誤訊息 / Error: {db_error}"
-                )
-            
-            # ========== 結束資料庫寫入 ==========
-
             # ✅ 記錄開始時間
             start_time = time.time()
 
@@ -748,7 +668,8 @@ class HomeworkBot:
                     f"📖 English grading in progress..."
                 )
                 
-                # ✅ 英語評分開始時間
+                # 評分開始
+                print("評分開始")
                 eng_start = time.time()
                 
                 # 執行英語評分
@@ -865,7 +786,7 @@ class HomeworkBot:
                 return
 
             except openai.error.InvalidRequestError as e:
-                # 新增：處理無效請求錯誤
+                # 處理無效請求錯誤
                 print(f"❌ OpenAI API 請求錯誤: {e}")
                 await processing_msg.edit(content=f"❌ API 請求錯誤 / API Request Error：{e}")
                 
@@ -888,6 +809,52 @@ class HomeworkBot:
                     severity="error"
                 )
                 return
+
+            # ========== 將提交記錄寫入資料庫 ==========
+            print(f"💾 正在將提交記錄寫入資料庫...")
+            try:
+                # ✅ 修正參數名稱，與 database.py 的方法定義一致
+                db_insert_success = self.db.insert_submission(
+                    discord_id=user_id,  # ✅ Discord ID（查詢鍵）
+                    student_name=db_student_name,
+                    student_number=student_number or student_id_from_html,  # ✅ 學號（僅供顯示）
+                    question_title=html_title,
+                    attempt_number=attempt_number,
+                    html_path=save_path
+                )
+                
+                if db_insert_success:
+                    print(f"✅ 提交記錄已成功寫入資料庫")
+                    print(f"   - Discord ID: {user_id}")
+                    print(f"   - 學號: {student_number or student_id_from_html}")
+                    print(f"   - 題目: {html_title}")
+                    print(f"   - 嘗試次數: {attempt_number}")
+                else:
+                    print(f"⚠️ 提交記錄寫入資料庫失敗（方法返回 False）")
+                    # 即使資料庫寫入失敗，仍繼續發送報告給用戶
+                    
+            except TypeError as type_error:
+                print(f"❌ 參數類型錯誤: {type_error}")
+                import traceback
+                traceback.print_exc()
+                await processing_msg.edit(
+                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生參數錯誤\n"
+                            f"⚠️ Report generated, but database write parameter error occurred\n"
+                            f"錯誤訊息 / Error: {type_error}\n\n"
+                            f"請聯繫管理員檢查系統設定"
+                )
+            except Exception as db_error:
+                print(f"❌ 資料庫寫入錯誤: {db_error}")
+                import traceback
+                traceback.print_exc()
+                # 即使資料庫寫入失敗，仍繼續發送報告給用戶
+                await processing_msg.edit(
+                    content=f"⚠️ 報告已生成，但記錄寫入資料庫時發生錯誤\n"
+                            f"⚠️ Report generated, but database write error occurred\n"
+                            f"錯誤訊息 / Error: {db_error}"
+                )
+            
+            # ========== 結束資料庫寫入 ==========
 
         except Exception as e:
             await message.author.send(f"❌ 處理檔案時發生錯誤 / Error processing file：{e}")
@@ -927,7 +894,7 @@ class HomeworkBot:
                 "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
                 "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
                 "CYCUIUBM": (CYCUIUBM_ROLE_ID, CYCUIUBM_ROLE_NAME),
-                "HWIS": (HWIS_ROLE_ID, HWIS_ROLE_NAME),  # 新增 HWIS 映射
+                "HWIS": (HWIS_ROLE_ID, HWIS_ROLE_NAME),
             }
             
             if class_name not in role_mapping:
@@ -1042,19 +1009,17 @@ class HomeworkBot:
             if not user_class_name:
                 await message.author.send(
                     "⚠️ **需要先選擇身分組 / Need to Choose Role First**\n\n"
-                    "請選擇以下任一方式：\n"
-                    "Please choose one of the following:\n\n"
-                    "**方式 1：到歡迎頻道選擇身分組**\n"
-                    "**Option 1: Choose role in welcome channel**\n"
+                    "請先完成以下步驟：\n"
+                    "Please complete the following steps:\n\n"
+                    "**步驟 1：到歡迎頻道選擇身分組**\n"
+                    "**step 1: Choose role in welcome channel**\n"
                     "• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
                     "• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
                     "• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM\n\n"
-                    "**方式 2：直接在私訊中登入（推薦）**\n"
-                    "**Option 2: Login via DM (Recommended)**\n"
-                    "• 私訊機器人：`!login 學號 密碼`\n"
-                    "• DM the bot: `!login student_id password`\n"
-                    "• 系統會自動分配對應的身分組\n"
-                    "  System will auto-assign corresponding role"
+                    "**步驟 2：在私訊/班級頻道中登入**\n"
+                    "**step 2: Login via DM/Class channel**\n"
+                    "• `!login 學號 密碼`\n"
+                    "• `!login student_id password`\n"
                 )
                 try:
                     await message.delete()
@@ -1141,7 +1106,7 @@ class HomeworkBot:
 
             print("✅ 密碼驗證成功")
 
-            # 新增：檢查用戶的身分組是否與學號班級一致
+            # 檢查用戶的身分組是否與學號班級一致
             guild = self.client.guilds[0]  # 假設機器人只在一個伺服器中
             member = guild.get_member(user.id)
             user_class = self.get_user_class_from_roles(member)
@@ -1156,6 +1121,7 @@ class HomeworkBot:
                     "• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM\n"
                     "• `!join HWIS` - HWIS / HWIS"
                 )
+                print("❌ 用戶尚未選擇身分組")
                 return False
 
             if user_class != class_name_db:
@@ -1286,7 +1252,7 @@ class HomeworkBot:
                 "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
                 "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
                 "CYCUIUBM": (CYCUIUBM_ROLE_ID, CYCUIUBM_ROLE_NAME),
-                "HWIS": (HWIS_ROLE_ID, HWIS_ROLE_NAME),  # 新增 HWIS 驗證
+                "HWIS": (HWIS_ROLE_ID, HWIS_ROLE_NAME),
             }
             
             if role_type not in valid_roles:
@@ -1297,7 +1263,7 @@ class HomeworkBot:
                     f"• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
                     f"• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
                     f"• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM\n"
-                    f"• `!join HWIS` - HWIS / HWIS"  # 新增 HWIS 選項
+                    f"• `!join HWIS` - HWIS / HWIS"
                 )
                 try:
                     await message.delete()
