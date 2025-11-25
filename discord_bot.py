@@ -1349,9 +1349,9 @@ class HomeworkBot:
             # 分配身分組
             await member.add_roles(role, reason=f"User joined {role_type}")
             
-            
             await message.author.send(
                 f"✅ **身分組分配成功 / Role Assigned Successfully**\n\n"
+                f"🎓 您的身分組 / Your role：`{role.name}`\n"
                 f"🔑 **下一步：登入系統 / Next Step: Login**\n"
                 f"請使用以下指令登入：\n"
                 f"Please use the following command to login:\n\n"
