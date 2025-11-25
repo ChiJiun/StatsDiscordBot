@@ -1349,33 +1349,9 @@ class HomeworkBot:
             # 分配身分組
             await member.add_roles(role, reason=f"User joined {role_type}")
             
-            # 在資料庫中創建學生記錄（如果還沒有）
-            class_name = self.role_to_class.get(role.name, role_type)
-            class_data = self.db.get_class_by_name(class_name)
-            
-            if class_data:
-                class_id = class_data[0]
-                
-                # 檢查是否已有記錄
-                existing_student = self.db.get_student_by_discord_id(str(user_id))
-                if not existing_student:
-                    # 創建新學生記錄（暫時沒有學號和姓名）
-                    student_id = self.db.create_student(
-                        student_name=f"User_{user_id}",
-                        discord_id=str(user_id),
-                        class_id=class_id
-                    )
-                    print(f"✅ 已為用戶 {user_id} 創建學生記錄 (ID: {student_id})")
-            
-            # 發送成功訊息
-            channel_id = self.class_channels.get(class_name)
-            channel_mention = f"<#{channel_id}>" if channel_id else "您的班級頻道"
             
             await message.author.send(
                 f"✅ **身分組分配成功 / Role Assigned Successfully**\n\n"
-                f"🎓 您的身分組 / Your role：`{role.name}`\n"
-                f"🏫 對應班級 / Class：`{class_name}`\n"
-                f"📍 班級頻道 / Class channel：{channel_mention}\n\n"
                 f"🔑 **下一步：登入系統 / Next Step: Login**\n"
                 f"請使用以下指令登入：\n"
                 f"Please use the following command to login:\n\n"
