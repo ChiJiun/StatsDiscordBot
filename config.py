@@ -76,6 +76,10 @@ SPECIFIC_PROMPTS = {
     "Four-Step_Proportion_App or in-store": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Proportion.txt")
+    },
+    "Four-Step_Population Mean": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Population Mean.txt")
     }
 }
 
