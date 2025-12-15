@@ -676,7 +676,7 @@ class HomeworkBot:
                 messages_eng = GradingService.create_messages(eng_prompt, db_student_name, answer_text)
                 eng_feedback = await asyncio.wait_for(
                     GradingService.generate_feedback(messages_eng),
-                    timeout=120.0
+                    timeout=300.0
                 )
                 
                 # ✅ 計算英語評分用時
@@ -700,7 +700,7 @@ class HomeworkBot:
                 messages_stat = GradingService.create_messages(stat_prompt, db_student_name, answer_text)
                 stats_feedback = await asyncio.wait_for(
                     GradingService.generate_feedback(messages_stat),
-                    timeout=120.0
+                    timeout=300.0
                 )
                 
                 # ✅ 計算統計評分用時
