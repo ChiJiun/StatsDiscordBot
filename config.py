@@ -80,6 +80,10 @@ SPECIFIC_PROMPTS = {
     "Four-Step_Population Mean": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Population Mean.txt")
+    },
+    "Four-Step_Z-Interval": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Z-Interval.txt")
     }
 }
 
