@@ -114,7 +114,7 @@ class GradingService:
                 model=model,
                 messages=messages,
                 temperature=temperature,
-                request_timeout=110  # 設定超時
+                request_timeout=290  # 設定超時
             )
             return response.choices[0].message.content
         except openai.error.Timeout as e:
