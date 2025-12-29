@@ -28,7 +28,7 @@ Show all steps using the SPDC structure.
 
 ---
 
-### Model Solution (Instructor’s Standard Answer)
+### Model Solution
 
 ### State
 
@@ -78,83 +78,62 @@ E for the proportion of customers who prefer using the company’s mobile app.
 
 ---
 
-## Scoring Rubric (20 pts total)
+## SCORING RUBRIC (20 pts total)
 (Do not change anything below)
 
-### State — 5 pts (1 pts each item)
+Minor arithmetic or rounding differences that do not change the statistical conclusion should not result in a loss of credit. Any value obtained using an appropriate statistical table (e.g., a Z-table, T-table, or chi-square table), or statistical software, with reasonable rounding, should be considered correct.
+
+### State – 5 pts (1 pts each item)
 
 | Item    | Points | Criteria                                     |
 | ------- | ------ | -------------------------------------------- |
 | State-A | 1      | Correctly identifies variable.               |
-| State-A | 0      | Fails to identify variable correctly.        |
-| State-B | 1      | Correctly identifies event of interest.     |
-| State-B | 0      | Event of interest is missing or incorrect.  |
+| State-B | 1      | Correctly identifies event of interest.      |
 | State-C | 1      | Correctly writes probability notation.       |
-| State-C | 0      | Probability notation missing or incorrect.  |
 | State-D | 1      | Fully specifies context.                     |
-| State-D | 0      | Context missing or incomplete.              |
-| State-E | 1      | Accurately communicates variable definition.|
-| State-E | 0      | Variable definition is inaccurate or unclear.|
+| State-E | 1      | Accurately communicates variable definition. |
 
-### Plan — 5 pts (0.5 pts each item)
+### Plan – 5 pts (0.5 pts each item)
 
-| Major Item   | Subitem | Points | Criteria                                                    |
-| ------------ | ------- | ------ | ----------------------------------------------------------- |
+| Major Item   | Subitem      | Points | Criteria                                                    |
+| ------------ | ------------ | ------ | ----------------------------------------------------------- |
 | Randomness   | Plan-1       | 0.5    | Correctly accounts for randomness in simulation.            |
-| Randomness   | Plan-1       | 0      | Fails to account for randomness.                             |
 | Randomness   | Plan-2       | 0.5    | Assignment of random values reflects probability correctly. |
-| Randomness   | Plan-2       | 0      | Assignment of random values is missing or incorrect.        |
 | Randomness   | Plan-3       | 0.5    | Random selection procedure is followed for each trial.      |
-| Randomness   | Plan-3       | 0      | Procedure not followed or missing.                           |
 | Randomness   | Plan-4       | 0.5    | Ensures sufficient trials to capture variability.           |
-| Randomness   | Plan-4       | 0      | Number of trials insufficient or unspecified.               |
 | Independence | Plan-5       | 0.5    | Recognizes independence of trials.                          |
-| Independence | Plan-5       | 0      | Independence ignored or incorrectly assumed.                |
 | Independence | Plan-6       | 0.5    | Repeats are handled appropriately due to independence.      |
-| Independence | Plan-6       | 0      | Repeat handling missing or incorrect.                        |
 | Independence | Plan-7       | 0.5    | Each trial outcome is independent of others.                |
-| Independence | Plan-7       | 0      | Trial outcomes treated as dependent when they should not be.|
-| Normality    | Plan-8       | 0.5    | Recognizes approximate normality for large n if applicable.|
-| Normality    | Plan-8       | 0      | Normality not considered or misapplied.                     |
+| Normality    | Plan-8       | 0.5    | Recognizes approximate normality for large n if applicable. |
 | Normality    | Plan-9       | 0.5    | Applies normal approximation correctly if used.             |
-| Normality    | Plan-9       | 0      | Approximation missing or incorrectly applied.               |
 | Normality    | Plan-10      | 0.5    | Correctly interprets standard error or variability.         |
-| Normality    | Plan-10      | 0      | Standard error or variability miscalculated or missing.     |
 
-### Do — 5 pts (1 pts each item)
+### Do – 5 pts (1 pts each item)
 
-| Item | Points | Criteria                                     |
-| ---- | ------ | -------------------------------------------- |
+| Item | Points | Criteria                                    |
+| ---- | ------ | ------------------------------------------- |
 | Do-A | 1      | Executes all trials correctly.              |
-| Do-A | 0      | Trials executed incorrectly or missing.      |
 | Do-B | 1      | Counts successes in each trial accurately.  |
-| Do-B | 0      | Counts are inaccurate or missing.           |
 | Do-C | 1      | Computes sample proportion for each trial.  |
-| Do-C | 0      | Sample proportion not computed correctly.   |
 | Do-D | 1      | Identifies trials within specified interval.|
-| Do-D | 0      | Interval identification missing or wrong.   |
 | Do-E | 1      | Summarizes results correctly.               |
-| Do-E | 0      | Summary missing or inaccurate.              |
 
-### Conclude — 5 pts (1 pts each item)
+### Conclude – 5 pts (1 pts each item)
 
-| Item       | Points | Criteria                                              |
-| ---------- | ------ | ----------------------------------------------------- |
+| Item       | Points | Criteria                                             |
+| ---------- | ------ | ---------------------------------------------------- |
 | Conclude-A | 1      | Computes empirical probability correctly.            |
-| Conclude-A | 0      | Probability computation incorrect or missing.        |
 | Conclude-B | 1      | Interprets probability meaningfully.                 |
-| Conclude-B | 0      | Interpretation missing or incorrect.                |
 | Conclude-C | 1      | Explains implications for sample proportion accuracy.|
-| Conclude-C | 0      | Explanation missing or inaccurate.                  |
 | Conclude-D | 1      | Evaluates reasonableness with respect to expectation.|
-| Conclude-D | 0      | Reasonableness not addressed.                        |
 | Conclude-E | 1      | Provides logical conclusion based on simulation.     |
-| Conclude-E | 0      | Conclusion missing or illogical.                     |
 
 ---
 
 ## Required Output Format
 Always respond in **Markdown tables** like below.
+
+To ensure accurate scoring and eliminate arithmetic mistakes, you must perform all calculations using a fully programmatic, step-by-step, algorithmic process.
 
 ### State
 
@@ -165,45 +144,45 @@ Always respond in **Markdown tables** like below.
 | State-C |       |                            |
 | State-D |       |                            |
 | State-E |       |                            |
-| **Subtotal** | Sum of above five subitems |                            |
+| **Subtotal** | Sum of above five subitems |  |
 
 ### Plan
 
-| Subitem | Score | Correction and Explanation |
-| ------- | ----- | -------------------------- |
-| Plan-1    |       |                            |
-| Plan-2    |       |                            |
-| Plan-3    |       |                            |
-| Plan-4    |       |                            |
-| Plan-5  |       |                            |
-| Plan-6  |       |                            |
-| Plan-7  |       |                            |
+| Subitem    | Score | Correction and Explanation |
+| ---------- | ----- | -------------------------- |
+| Plan-1     |       |                            |
+| Plan-2     |       |                            |
+| Plan-3     |       |                            |
+| Plan-4     |       |                            |
+| Plan-5     |       |                            |
+| Plan-6     |       |                            |
+| Plan-7     |       |                            |
 | Plan-8     |       |                            |
 | Plan-9     |       |                            |
 | Plan-10    |       |                            |
-| **Subtotal** | Sum of above ten subitems |                            |
+| **Subtotal** | Sum of above ten subitems |      |
 
 ### Do
 
 | Subitem | Score | Correction and Explanation |
 | ------- | ----- | -------------------------- |
-| Do-A |       |                            |
-| Do-B |       |                            |
-| Do-C |       |                            |
-| Do-D |       |                            |
-| Do-E |       |                            |
-| **Subtotal** | Sum of above five subitems |                            |
+| Do-A    |       |                            |
+| Do-B    |       |                            |
+| Do-C    |       |                            |
+| Do-D    |       |                            |
+| Do-E    |       |                            |
+| **Subtotal** | Sum of above five subitems |  |
 
 ### Conclude
 
-| Subitem | Score | Correction and Explanation |
-| ------- | ----- | -------------------------- |
+| Subitem    | Score | Correction and Explanation |
+| ---------- | ----- | -------------------------- |
 | Conclude-A |       |                            |
 | Conclude-B |       |                            |
 | Conclude-C |       |                            |
 | Conclude-D |       |                            |
 | Conclude-E |       |                            |
-| **Subtotal** | Sum of above five subitems |                            |
+| **Subtotal** | Sum of above five subitems |     |
 
 ### Summary
 
