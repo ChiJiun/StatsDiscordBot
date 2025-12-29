@@ -26,53 +26,57 @@ A multinational corporation is testing a new AI-enhanced routing system designed
 
 ---
 
-## Scoring Rubric (20 pts total)
+## SCORING RUBRIC (20 pts total)
 (Do not change anything below)
 
-### State — 5 pts (1 pts each item)
+Minor arithmetic or rounding differences that do not change the statistical conclusion should not result in a loss of credit. Any value obtained using an appropriate statistical table (e.g., a Z-table, T-table, or chi-square table), or statistical software, with reasonable rounding, should be considered correct.
+
+### State – 5 pts (1 pts each item)
 
 | Item    | Points | Criteria                                     |
 | ------- | ------ | -------------------------------------------- |
-| State-A | 1      | Clearly define the population parameter μ as the true mean continuous handling time for agents using the new AI-enhanced system.               |
-| State-B | 1      | Correct identify the desired confidence level as 99%.     |
-| State-C | 1      | State the sample mean (xˉ) as 33.9 hours.       |
-| State-D | 1      | State the sample standard deviation (s) as 9.8 hours.                     |
-| State-E | 1      | Explicitly list the sample size (n) as 30 routing cycles.|
+| State-A | 1      | Clearly define the population parameter μ as the true mean continuous handling time for agents using the new AI-enhanced system. |
+| State-B | 1      | Correct identify the desired confidence level as 99%. |
+| State-C | 1      | State the sample mean (xˉ) as 33.9 hours. |
+| State-D | 1      | State the sample standard deviation (s) as 9.8 hours. |
+| State-E | 1      | Explicitly list the sample size (n) as 30 routing cycles. |
 
-### Plan — 5 pts (1 pts each item)
+### Plan – 5 pts (1 pts each item)
 
 | Item    | Points | Criteria                                     |
 | ------- | ------ | -------------------------------------------- |
-| Plan-A | 1      | Correct identify the statistical procedure as a one-sample t-interval for the population mean.               |
-| Plan-B | 1      | Verify the Randomness condition by referencing the Simple Random Sample (SRS) mentioned in the prompt.     |
-| Plan-C | 1      | Verify the Independence (10%) condition: 30≤0.10×(all senior agents), assuming a population greater than 300.       |
-| Plan-D | 1      | Verify the Normality condition using the Central Limit Theorem (CLT) because n=30 is sufficient to assume a normal sampling distribution.                     |
-| Plan-E | 1      | Correct calculate the degrees of freedom (df) as n−1=29.|
+| Plan-A  | 1      | Correct identify the statistical procedure as a one-sample t-interval for the population mean. |
+| Plan-B  | 1      | Verify the Randomness condition by referencing the Simple Random Sample (SRS) mentioned in the prompt. 
+| Plan-C  | 1      | Verify the Independence (10%) condition: 30≤0.10×(all senior agents), assuming a population greater than 300. |
+| Plan-D  | 1      | Verify the Normality condition using the Central Limit Theorem (CLT) because n=30 is sufficient to assume a normal sampling distribution. |
+| Plan-E  | 1      | Correct calculate the degrees of freedom (df) as n−1=29. |
 
-### Do — 5 pts (1 pts each item)
+### Do – 5 pts (1 pts each item)
 
 | Item | Points | Criteria                                     |
 | ---- | ------ | -------------------------------------------- |
-| Do-A | 1      | Correct determine the critical value (t∗) for df=29 at 99% confidence (≈2.756).              |
-| Do-B | 1      | Calculate the Standard Error (SE) accurately: 9.8/30≈1.789.  |
-| Do-C | 1      | Calculate the Margin of Error (ME): 2.756×1.789≈4.931.  |
+| Do-A | 1      | Correct determine the critical value (t∗) for df=29 at 99% confidence (≈2.756). |
+| Do-B | 1      | Calculate the Standard Error (SE) accurately: 9.8/30≈1.789. |
+| Do-C | 1      | Calculate the Margin of Error (ME): 2.756×1.789≈4.931. |
 | Do-D | 1      | Show the lower bound calculation: 33.9−4.931≈28.97.|
-| Do-E | 1      | Show the upper bound calculation: 33.9+4.931≈38.83, resulting in interval (28.97,38.83).               |
+| Do-E | 1      | Show the upper bound calculation: 33.9+4.931≈38.83, resulting in interval (28.97,38.83). |
 
-### Conclude — 5 pts (1 pts each item)
+### Conclude – 5 pts (1 pts each item)
 
 | Item       | Points | Criteria                                              |
 | ---------- | ------ | ----------------------------------------------------- |
-| Conclude-A | 1      | Begin with the formal interpretative phrase: "We are 99% confident that...".            |
-| Conclude-B | 1      | Correct state the numeric interval from 28.97 hours to 38.83 hours.                 |
-| Conclude-C | 1      | Connect the result back to the specific population parameter: "captures the true mean handling time (μ) for the AI-enhanced routing system".|
-| Conclude-D | 1      | Include the context of the study: "for experienced senior agents managing service calls".|
-| Conclude-E | 1      | Address the original inquiry: State that because the traditional value of 30 hours is within the interval, we lack strong evidence that the new mean differs from the old one.     |
+| Conclude-A | 1      | Begin with the formal interpretative phrase: "We are 99% confident that...". |
+| Conclude-B | 1      | Correct state the numeric interval from 28.97 hours to 38.83 hours. |
+| Conclude-C | 1      | Connect the result back to the specific population parameter: "captures the true mean handling time (μ) for the AI-enhanced routing system". |
+| Conclude-D | 1      | Include the context of the study: "for experienced senior agents managing service calls". |
+| Conclude-E | 1      | Address the original inquiry: State that because the traditional value of 30 hours is within the interval, we lack strong evidence that the new mean differs from the old one. |
 
 ---
 
 ## Required Output Format
 Always respond in **Markdown tables** like below.
+
+To ensure accurate scoring and eliminate arithmetic mistakes, you must perform all calculations using a fully programmatic, step-by-step, algorithmic process.
 
 ### State
 
@@ -83,40 +87,40 @@ Always respond in **Markdown tables** like below.
 | State-C |       |                            |
 | State-D |       |                            |
 | State-E |       |                            |
-| **Subtotal** | Sum of above five subitems |                            |
+| **Subtotal** | Sum of above five subitems |  |
 
 ### Plan
 
-| Subitem | Score | Correction and Explanation |
-| ------- | ----- | -------------------------- |
+| Subitem   | Score | Correction and Explanation |
+| --------- | ----- | -------------------------- |
 | Plan-A    |       |                            |
 | Plan-B    |       |                            |
 | Plan-C    |       |                            |
 | Plan-D    |       |                            |
-| Plan-E  |       |                            |
-| **Subtotal** | Sum of above five subitems |                            |
+| Plan-E    |       |                            |
+| **Subtotal** | Sum of above five subitems |    |
 
 ### Do
 
 | Subitem | Score | Correction and Explanation |
 | ------- | ----- | -------------------------- |
-| Do-A |       |                            |
-| Do-B |       |                            |
-| Do-C |       |                            |
-| Do-D |       |                            |
-| Do-E |       |                            |
-| **Subtotal** | Sum of above five subitems |                            |
+| Do-A    |       |                            |
+| Do-B    |       |                            |
+| Do-C    |       |                            |
+| Do-D    |       |                            |
+| Do-E    |       |                            |
+| **Subtotal** | Sum of above five subitems |  |
 
 ### Conclude
 
-| Subitem | Score | Correction and Explanation |
-| ------- | ----- | -------------------------- |
+| Subitem    | Score | Correction and Explanation |
+| ---------- | ----- | -------------------------- |
 | Conclude-A |       |                            |
 | Conclude-B |       |                            |
 | Conclude-C |       |                            |
 | Conclude-D |       |                            |
 | Conclude-E |       |                            |
-| **Subtotal** | Sum of above five subitems |                            |
+| **Subtotal** | Sum of above five subitems |     |
 
 ### Summary
 
