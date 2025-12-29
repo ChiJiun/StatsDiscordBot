@@ -84,6 +84,10 @@ SPECIFIC_PROMPTS = {
     "Four-step_Final": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-step_Final.txt")
+    },
+    "Four-step_Proportion Test": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-step_Proportion Test.txt")
     }
 }
 
