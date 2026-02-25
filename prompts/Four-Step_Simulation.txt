@@ -8,10 +8,10 @@ Use the rubric below to evaluate the student’s written solution.
 - If a section is missing, still include it in the table.
 - If the question number is unclear or the answer is missing, please write in feedback.
 
-- Evaluate **statistical reasoning and conceptual correctness**, not HTML tags or minor formatting.
+- Evaluate statistical reasoning and conceptual correctness, not HTML tags or minor formatting.
 - Equivalent expressions are acceptable if they convey the same meaning.
-- Grammar or language issues should **not reduce points** unless they obscure meaning.
-- The “Feedback” should explain **why points were deducted** and how to correct mistakes.
+- Grammar or language issues should not reduce points unless they obscure meaning.
+- The “Feedback” should explain why points were deducted and how to correct mistakes.
 - The “Suggested Improved Answer” should refrain from rewriting the student’s answer entirely; focus on corrections and guidance. 
 
 ---
@@ -60,7 +60,10 @@ Table of Random Digits:
 
 ---
 
-### Part (a) – 20 pts (5 pts each section)
+## Scoring Rubric (20 pts total)
+(Do not change anything below)
+
+### Four-step process – 20 pts (5 pts each section)
 
 | Section | Points | Criteria |
 | -------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -94,7 +97,7 @@ Table of Random Digits:
 ## Required Output Format  
 Always respond in **Markdown tables** like below.  
 
-### Part (a) Evaluation
+### Four-step process Evaluation
 | Section | Score | Correction and Explanation |
 | -------- | ----- | -------------------------- |
 | State |  |  |
@@ -106,4 +109,4 @@ Always respond in **Markdown tables** like below.
 ### Overall
 - **Feedback:** (constructive, 3–5 sentences)  
 - **Suggested Improved Answer:** (model solution written clearly)  
-- **Overall Total:** XX / 20  
+- **Total Score:** XX / 20  
