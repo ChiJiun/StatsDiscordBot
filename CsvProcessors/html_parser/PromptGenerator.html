@@ -1,0 +1,269 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 評分 Prompt 生成器 (自動對接爬蟲格式)</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; line-height: 1.6; }
+        .container { max-width: 1000px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        h1, h2, h3 { color: #2c3e50; }
+        label { font-weight: bold; display: block; margin-top: 15px; }
+        textarea, input[type="text"], input[type="number"] { width: 100%; padding: 10px; margin-top: 5px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; font-family: inherit; }
+        textarea { height: 120px; resize: vertical; }
+        .section-card { border: 1px solid #e0e0e0; padding: 15px; margin-top: 20px; border-radius: 6px; background: #fafafa; }
+        .criterion-row { display: flex; gap: 8px; margin-top: 10px; align-items: flex-start; }
+        .criterion-row input[type="text"].crit-major { flex: 1.5; }
+        .criterion-row input[type="text"].crit-name { flex: 1.5; }
+        .criterion-row input[type="number"] { width: 70px; }
+        .criterion-row input[type="text"].crit-desc { flex: 4; }
+        button { background: #3498db; color: #fff; border: none; padding: 10px 15px; cursor: pointer; border-radius: 4px; font-size: 14px; margin-top: 10px; }
+        button:hover { background: #2980b9; }
+        .btn-danger { background: #e74c3c; }
+        .btn-danger:hover { background: #c0392b; }
+        .btn-success { background: #2ecc71; font-size: 16px; padding: 12px 20px;}
+        .btn-success:hover { background: #27ae60; }
+        .actions { margin-top: 30px; display: flex; gap: 15px; border-top: 2px solid #eee; padding-top: 20px; align-items: center; }
+        #outputArea { width: 100%; height: 400px; font-family: 'Courier New', Courier, monospace; background: #2d2d2d; color: #f8f8f2; padding: 15px; border-radius: 4px; margin-top: 20px; white-space: pre-wrap; }
+        .checkbox-label { font-weight: normal; color: #2c3e50; font-size: 13px; cursor: pointer; display: inline-flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>📝 AI 評分 Prompt 生成器</h1>
+    <p>填寫以下內容，系統將自動生成符合 <code>crawler.py</code> 抓取格式的 Prompt。</p>
+
+    <h2>1. 題目與參考資料 (Reference Materials)</h2>
+    <label>題目內容 (Problem Statement):</label>
+    <textarea id="problemStatement" placeholder="請貼上題目內容..."></textarea>
+
+    <label>標準答案 (Model Solution):</label>
+    <textarea id="modelSolution" placeholder="請貼上參考解答 (選填)..."></textarea>
+
+    <h2>2. 評分標準 (Scoring Rubric)</h2>
+    <p>總分將由系統自動加總。您可以自行新增大題區塊或評分細項。<br>
+       <small style="color:#d35400;">※ 若填寫 <b>Major Item</b>，它會與 Item 合併顯示在輸出表格中（例如：Randomness - Plan-1），兼顧學生閱讀與爬蟲抓取！</small><br>
+       <small style="color:#d35400;">※ 若區塊只有一個評分項目，建議勾選「隱藏獨立表格」，版面會更精簡！</small>
+    </p>
+    
+    <div id="sectionsContainer">
+        </div>
+
+    <button onclick="addSection()">➕ 新增評分大項 (Add Section)</button>
+
+    <div class="actions">
+        <input type="text" id="fileNameInput" placeholder="輸出檔名 (預設: Grading_Prompt)" style="width: 250px; margin-top: 0;">
+        <button class="btn-success" onclick="generatePrompt()">⚙️ 生成 Prompt 預覽</button>
+        <button class="btn-success" onclick="downloadTxt()" style="background:#f39c12;">📥 下載為 TXT 檔</button>
+    </div>
+
+    <textarea id="outputArea" readonly placeholder="生成的 Prompt 會顯示在這裡..."></textarea>
+</div>
+
+<script>
+    let sectionCount = 0;
+
+    // 預設載入 SPDC 四個區塊
+    window.onload = function() {
+        const defaultSections = ["State", "Plan", "Do", "Conclude"];
+        defaultSections.forEach(title => addSection(title));
+    };
+
+    function addSection(title = "") {
+        sectionCount++;
+        const sectionId = `section-${sectionCount}`;
+        const sectionHtml = `
+            <div class="section-card" id="${sectionId}">
+                <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                    <div style="width: 80%; display: flex; align-items: flex-start; gap: 15px;">
+                        <input type="text" class="sec-title" value="${title}" placeholder="區塊名稱 (例如: Part (a))" style="font-size: 18px; font-weight: bold; width: 40%; margin-top: 0;">
+                        <div style="display: flex; flex-direction: column;">
+                            <label class="checkbox-label">
+                                <input type="checkbox" class="sec-feedback"> 包含獨立 Feedback 區塊
+                            </label>
+                            <label class="checkbox-label" title="不生成單獨的表格，直接將此項目的分數與說明合併至最後的 Summary 總表中。">
+                                <input type="checkbox" class="sec-merge"> 隱藏獨立表格 (合併至 Summary 總表)
+                            </label>
+                        </div>
+                    </div>
+                    <button class="btn-danger" onclick="removeElement('${sectionId}')" style="margin-top: 0;">刪除此區塊</button>
+                </div>
+                <div class="criteria-container" id="criteria-${sectionCount}">
+                    </div>
+                <button onclick="addCriterion(${sectionCount}, '${title}')">➕ 新增子項目 (Add Item)</button>
+            </div>
+        `;
+        document.getElementById('sectionsContainer').insertAdjacentHTML('beforeend', sectionHtml);
+        
+        if(title !== "") addCriterion(sectionCount, title, "A");
+    }
+
+    function addCriterion(sectionIndex, sectionTitle, suffix = "") {
+        const criteriaContainer = document.getElementById(`criteria-${sectionIndex}`);
+        const itemCount = criteriaContainer.children.length + 1;
+        const defaultName = suffix ? `${sectionTitle}-${suffix}` : `Item-${itemCount}`;
+        
+        const criterionHtml = `
+            <div class="criterion-row">
+                <input type="text" class="crit-major" placeholder="Major Item (選填)">
+                <input type="text" class="crit-name" value="${defaultName}" placeholder="項目代號 (例: State-A)">
+                <input type="number" class="crit-points" value="1" min="0" step="0.5" placeholder="分數">
+                <input type="text" class="crit-desc" placeholder="評分標準描述...">
+                <button class="btn-danger" onclick="this.parentElement.remove()" style="margin-top:0;">X</button>
+            </div>
+        `;
+        criteriaContainer.insertAdjacentHTML('beforeend', criterionHtml);
+    }
+
+    function removeElement(id) {
+        document.getElementById(id).remove();
+    }
+
+    function generatePrompt() {
+        const problem = document.getElementById('problemStatement').value.trim();
+        const solution = document.getElementById('modelSolution').value.trim();
+        
+        let prompt = `You are a statistics grader.\nUse the rubric below to evaluate the student’s written solution.\n\n⚠️ Strict Instructions:\n- DO NOT alter or summarize the rubric text.\n- DO NOT add extra explanation outside the specified output.\n- Always produce the output in **Markdown tables** exactly as shown below.\n- If a section is missing, still include it in the table.\n- If the question number is unclear or the answer is missing, please write in feedback.\n- Equivalent expressions are acceptable if they convey the same meaning.\n- Evaluate statistical reasoning and conceptual correctness, not HTML tags or minor formatting.\n- Grammar or language issues should not reduce points unless they obscure meaning.\n- The "Feedback" should explain why points were deducted and how to correct mistakes.\n- The "Suggested Improved Answer" should refrain from rewriting the student’s answer entirely; focus on corrections and guidance.\n- The "Required Output Format" do not approximate. Treat all numbers as exact decimals.\n---\n\n## REFERENCE MATERIALS\n(These are for your understanding only. DO NOT include them in your output.)\n\n### Problem Statement\n${problem}\n\n`;
+
+        if (solution) {
+            const safeSolution = solution.replace(/###\s*(.+)/g, "**$1**");
+            prompt += `### Model Solution\n${safeSolution}\n\n`;
+        }
+
+        prompt += `---\n\n## SCORING RUBRIC\n(Do not change anything below)\n\nMinor arithmetic or rounding differences that do not change the statistical conclusion should not result in a loss of credit.\nAny value obtained using an appropriate statistical table (e.g., a Z-table, T-table, or chi-square table), or statistical software, with reasonable rounding, should be considered correct.\n\n`;
+
+        const sections = document.querySelectorAll('.section-card');
+        
+        // 檢查是否「有任何一個」區塊勾選了合併選項
+        const hasMergedSections = Array.from(sections).some(sec => sec.querySelector('.sec-merge').checked);
+        
+        let rubricText = "";
+        
+        // 根據是否需要合併，決定 Summary 表格的標頭要有幾欄
+        let outputFormatText = "### Summary\n\n";
+        if (hasMergedSections) {
+            outputFormatText += "| Section | Score | Correction and Explanation |\n| --------- | ----- | -------------------------- |\n";
+        } else {
+            outputFormatText += "| Section | Score |\n| --------- | ----------- |\n";
+        }
+        
+        let totalScore = 0;
+        let outputTables = "";
+
+        sections.forEach(sec => {
+            const title = sec.querySelector('.sec-title').value || "Unnamed Section";
+            const includeFeedback = sec.querySelector('.sec-feedback').checked;
+            const isMerged = sec.querySelector('.sec-merge').checked;
+            const criteriaRows = sec.querySelectorAll('.criterion-row');
+            let secPoints = 0;
+            
+            let hasMajor = false;
+            criteriaRows.forEach(row => {
+                if(row.querySelector('.crit-major').value.trim() !== '') hasMajor = true;
+            });
+
+            // 組合 Rubric (這部分無論如何都會生成，讓 AI 知道評分標準)
+            let secRubric = hasMajor ? 
+                `| Major Item | Item | Points | Criteria |\n| ---------- | ---- | ------ | -------------------------------------------- |\n` :
+                `| Item | Points | Criteria |\n| ---- | ------ | -------------------------------------------- |\n`;
+            
+            let secOutputTable = `### ${title}\n\n| Item | Score | Correction and Explanation |\n| ---- | ----- | -------------------------- |\n`;
+
+            criteriaRows.forEach(row => {
+                const major = row.querySelector('.crit-major').value.trim();
+                const name = row.querySelector('.crit-name').value.trim();
+                const points = parseFloat(row.querySelector('.crit-points').value) || 0;
+                const desc = row.querySelector('.crit-desc').value.trim();
+                
+                secPoints += points;
+                
+                if(hasMajor) {
+                    secRubric += `| ${major} | ${name} | ${points} | ${desc} |\n`;
+                } else {
+                    secRubric += `| ${name} | ${points} | ${desc} |\n`;
+                }
+                
+                const outputItemName = major ? `${major} - ${name}` : name;
+                secOutputTable += `| ${outputItemName} | | |\n`;
+            });
+
+            totalScore += secPoints;
+            rubricText += `### ${title} – ${secPoints} pts\n\n${secRubric}\n`;
+            
+            // 決定此區塊要顯示在哪裡
+            if (isMerged) {
+                // 如果勾選合併，不要生成獨立表格，直接在 Summary 增加一列填寫說明
+                if (hasMergedSections) {
+                    outputFormatText += `| ${title} | | |\n`;
+                }
+                
+                // 就算隱藏表格，如果勾了獨立 Feedback 還是要印出來
+                if (includeFeedback) {
+                    outputTables += `**${title} Feedback**\n- **Feedback:** (constructive, 3–5 sentences)\n- **Suggested Improved Answer:** (model solution written clearly)\n\n`;
+                }
+                
+            } else {
+                // 如果沒有勾選合併，生成獨立表格
+                outputTables += `${secOutputTable}| **Subtotal** | Sum of above items | |\n\n`;
+                
+                if (includeFeedback) {
+                    outputTables += `**${title} Overall**\n- **Feedback:** (constructive, 3–5 sentences)\n- **Suggested Improved Answer:** (model solution written clearly)\n\n`;
+                }
+                
+                // 在 Summary 表格中留紀錄
+                if (hasMergedSections) {
+                    outputFormatText += `| ${title} | Subtotal from ${title} table | (See detailed table above) |\n`;
+                } else {
+                    outputFormatText += `| ${title} | Subtotal from ${title} table |\n`;
+                }
+            }
+        });
+
+        prompt = prompt.replace("## SCORING RUBRIC", `## SCORING RUBRIC (${totalScore} pts total)`);
+        prompt += rubricText;
+
+        prompt += `---\n\n## Required Output Format\nAlways respond in **Markdown tables** like below.\nTo ensure accurate scoring and eliminate arithmetic mistakes, you must perform all calculations using a fully programmatic, step-by-step, algorithmic process.\n\n`;
+        prompt += outputTables;
+        
+        // 總表結尾
+        if (hasMergedSections) {
+            outputFormatText += `| **Total** | Sum of all section scores | |\n\n`;
+        } else {
+            outputFormatText += `| **Total** | Sum of all section subtotals |\n\n`;
+        }
+        
+        outputFormatText += `### Overall\n- **Feedback:** (constructive, 3–5 sentences)\n- **Suggested Improved Answer:** (model solution written clearly)\n- **Total Score:** XX / ${totalScore}`;
+        
+        prompt += outputFormatText;
+
+        document.getElementById('outputArea').value = prompt;
+    }
+
+    function downloadTxt() {
+        const text = document.getElementById('outputArea').value;
+        if (!text) {
+            alert("請先點擊『生成 Prompt 預覽』！");
+            return;
+        }
+        
+        let fileName = document.getElementById('fileNameInput').value.trim();
+        if (!fileName) {
+            fileName = "Grading_Prompt";
+        }
+        if (!fileName.endsWith('.txt')) {
+            fileName += '.txt';
+        }
+
+        const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = fileName;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+</script>
+
+</body>
+</html>
