@@ -143,29 +143,37 @@ class HomeworkBot:
             description="✨ **歡迎同學們！請仔細閱讀以下重要提醒**\n"
             "✨ **Welcome! Please read the following important reminders carefully**\n\n"
             "📍 **開始使用前，請先將機器人加入好友，確保可以收到訊息**\n"
-            "📍 **Before using, please add the bot as a friend to make sure you can receive messages**",
+            "📍 **Before using, please add the bot as a friend to make sure you can receive messages**\n\n",
             color=0x3498DB,
         )
 
+        # 插入一個隱藏欄位來強制換行
+        embed.add_field(name="", value="", inline=False)
+
         # 替換掉原本的 !join 說明，改為統一的登入說明
         embed.add_field(
-            name="🔑 登入與綁定帳號 / Login & Bind Account", 
-            value="請在此頻道輸入以下指令進行登入（系統會自動分配您的班級）：\n"
-                  "Please type the following command to login:\n\n"
-                  "`!login 學號 密碼`\n"
-                  "`!login student_id password`", 
+            name="🔑 登入與綁定帳號 / Login & Bind Account",
+            value="🔑請輸入以下指令進行登入，系統會自動分配您的身分組：\n"
+                  "Please type the following command to login:\n"
+                  "• `!login 學號 密碼` - 登入系統 / Login to system", 
             inline=False
         )
+
+        # 插入一個隱藏欄位來強制換行
+        embed.add_field(name="", value="", inline=False)
 
         embed.add_field(
             name="\n📚 系統功能說明 / System Features",
             value="• `!help` - 查看完整指令說明 / View complete instructions\n"
-            "• **直接上傳作業 HTML 檔案** - 系統會自動評分 (請至您的班級頻道上傳)\n"
-            "• **Upload HTML homework file** - Auto grading (Upload in your class channel)\n"
+            "• **直接上傳作業 HTML 檔案** - 系統會自動評分\n"
+            "• **Upload HTML homework file** - Auto grading\n"
             "• `!my-submissions` - 查看作業提交記錄 / View submission history",
             inline=False,
         )
         
+        # 插入一個隱藏欄位來強制換行
+        embed.add_field(name="", value="", inline=False)
+
         embed.add_field(
             name="🔗 作答網站 Answer Website",
             value="[點擊進入作答網站 / Click to enter answer website](https://chijiun.github.io/StatsAnswerFormatter/)",
@@ -270,14 +278,13 @@ class HomeworkBot:
 
             # 對於其他私訊，引導用戶到班級頻道
             await message.author.send(
-                "💡 **您可以在私訊中使用 `!login 學號 密碼` 登入系統**\n"
-                "💡 **You can use `!login student_id password` in DM to login**"
-                "💬 **請勿在私訊中使用其他功能**\n"
-                "💬 **Please do not use other features in DM**\n\n"
-                "🏫 **請前往您的班級頻道進行以下操作：**\n"
-                "🏫 **Please go to your class channel for the following operations:**\n\n"
+                "💡 您可以在私訊中使用 `!login 學號 密碼` 登入系統\n"
+                "💡 You can use `!login student_id password` in DM to login"
+                "💬 請勿在私訊中使用其他功能\n"
+                "💬 Please do not use other features in DM\n\n"
+                "🏫 請前往您的班級頻道進行以下操作：\n"
+                "🏫 Please go to your class channel for the following operations:\n\n"
                 "• 使用 `!help` 查看完整功能說明 / Use `!help` to view complete instructions\n"
-                # "• 使用 `!join 學校身分` 選擇學校身分 / Use `!join school_identity` to choose school identity\n"
                 "• 使用 `!my-submissions` 查看作業提交記錄 / Use `!my-submissions` to view submission history\n"
                 "• 📤 上傳 HTML 作業檔案進行評分 / Upload HTML homework file for grading\n"
             )
@@ -286,32 +293,6 @@ class HomeworkBot:
         # 獲取用戶的班級和頻道資訊
         member = message.guild.get_member(message.author.id)
         user_class, user_channel_id = self.get_user_class_channel_info(member)
-
-        # # 處理加入身分組指令 (只能在歡迎頻道使用)
-        # if message.content.lower().startswith("!join"):
-        #     if message.channel.id != WELCOME_CHANNEL_ID:
-        #         await message.author.send("❌ 加入身分組指令只能在歡迎頻道使用！\n" "❌ Join role command can only be used in welcome channel!")
-        #         should_delete = True
-        #     else:
-        #         parts = message.content.split()
-        #         if len(parts) != 2:
-        #             await message.author.send(
-        #                 "❌ 使用方法 / Usage: `!join NCUFN` 或 or `!join NCUEC` 或 or `!join CYCUIUBM`\n"
-        #                 "⚠️ 注意 / Note：每人只能選擇一個身分組！/ Each person can only choose one role!"
-        #             )
-        #             should_delete = True
-        #         else:
-        #             role_type = parts[1].upper()
-        #             await self.handle_join_role(message, role_type)
-        #             # _handle_join_role 會自行刪除訊息
-        #             return
-        #     # 如果到這裡，代表有錯誤，刪除訊息
-        #     if should_delete:
-        #         try:
-        #             await message.delete()
-        #         except:
-        #             pass
-        #     return
 
         # 處理幫助指令
         if message.content.lower() == "!help":
@@ -324,11 +305,9 @@ class HomeworkBot:
                 "1. 📤 **上傳作業檔案 / Upload Homework** - 直接拖拽 `.html` 檔案到聊天室，系統會自動評分\n"
                 "   Drag `.html` file to chat, system will auto grade\n"
                 "2. 📋 `!help` - 顯示這個使用指南 / Show this guide\n"
-                # "3. 🏫 `!join 學校代碼` - 選擇您的學校身分 (僅限歡迎頻道)\n"
-                # "   Choose your school identity (welcome channel only)\n"
-                "4. 🔑 `!login 學號 密碼` - 使用學號密碼登入系統\n"
+                "3. 🔑 `!login 學號 密碼` - 使用學號密碼登入系統\n"
                 "   Login with student ID and password\n"
-                "5. 📝 `!my-submissions` - 查看我的作業提交記錄\n"
+                "4. 📝 `!my-submissions` - 查看我的作業提交記錄\n"
                 "   View my submission history\n"
             )
 
@@ -340,8 +319,8 @@ class HomeworkBot:
 
             help_text += (
                 "\n💡 **溫馨提醒 / Tips**：\n"
-                "• 除了選擇學校身分外，所有功能都必須在您的班級專屬頻道中使用\n"
-                "  Except role selection, all features must be used in your class channel\n"
+                "• 除了登入外，所有功能都必須在您的班級專屬頻道中使用\n"
+                "  Except login, all features must be used in your class channel\n"
                 "• 作業評分會同時提供英語表達和統計內容兩個面向的建議\n"
                 "  Homework grading provides feedback on both English expression and statistics content\n"
                 "• 每次提交都會保留詳細的評分報告供您參考\n"
@@ -366,8 +345,10 @@ class HomeworkBot:
             await message.author.send(
                 "👋 **歡迎！** 這個頻道專門用來登入系統。\n"
                 "👋 **Welcome!** This channel is for logging in.\n\n"
-                "請輸入 `!login 學號 密碼` 來登入，系統將為您自動分配班級身分組。\n"
-                "Please use `!login student_id password` to login and automatically get your class role."
+                "請輸入 `!login 學號 密碼` 來登入，系統將為您自動分配身分組。\n"
+                "Please use `!login student_id password` to login and automatically get your class role.\n\n"
+                "⚠️ 請勿在此頻道進行其他操作\n"
+                "⚠️ Please do not perform other operations in this channel"
             )
             should_delete = True
 
@@ -441,10 +422,12 @@ class HomeworkBot:
         # 檢查是否為歡迎頻道的其他訊息 (擋下非指令的閒聊)
         elif message.channel.id == WELCOME_CHANNEL_ID:
             await message.author.send(
-                "👋 **歡迎！** 這個頻道專門用來登入與綁定系統。\n"
+                "👋 **歡迎！** 這個頻道專門用來登入系統。\n"
                 "👋 **Welcome!** This channel is for logging in.\n\n"
-                "請輸入 `!login 學號 密碼` 來登入並獲取您的班級身分組。\n"
-                "Please use `!login student_id password` to login and get your class role."
+                "請輸入 `!login 學號 密碼` 來登入，系統將為您自動分配身分組。\n"
+                "Please use `!login student_id password` to login and automatically get your class role.\n"
+                "⚠️ 請勿在此頻道進行其他操作\n"
+                "⚠️ Please do not perform other operations in this channel"
             )
             should_delete = True
 
@@ -520,9 +503,7 @@ class HomeworkBot:
                     "🔐 **身分驗證需要 / Identity Verification Required**\n\n"
                     "系統找不到您的學生資料，請先完成以下步驟：\n"
                     "System cannot find your student data, please complete the following steps:\n\n"
-                    # "1. 🏫 使用 `!join 學校代碼` 選擇學校身分\n"
-                    # "   Use `!join school_code` to choose school identity\n"
-                    "2. 🔑 使用 `!login 學號 密碼` 登入現有帳戶\n"
+                    "   🔑 使用 `!login 學號 密碼` 登入現有帳戶\n"
                     "   Use `!login student_id password` to login to existing account"
                 )
                 try:
@@ -571,7 +552,8 @@ class HomeworkBot:
                     f"題目名稱：{html_title}\n"
                     f"系統目前尚未設定此題目的評分標準，無法進行評分。\n"
                     f"System has not updated grading criteria for this topic yet.\n\n"
-                    f"請確認您上傳的是正確的作業檔案，或稍後再試。"
+                    f"請確認您上傳的是正確的作業檔案，或稍後再試。\n"
+                    f"Please make sure you uploaded the correct homework file, or try again later."
                 )
                 print(f"🛑 題目 '{html_title}' 未設定 Prompt，停止處理")
                 os.remove(temp_path)
@@ -981,14 +963,12 @@ class HomeworkBot:
             if len(parts) != 3:
                 # 登入需要身分組
                 member = message.guild.get_member(user_id)
-                # user_class_name = self.get_user_class_from_roles(member)
                 
                 await message.author.send(
                     "❌ **登入指令格式錯誤 / Login command format error**\n\n"
                     f"✅ 正確使用方式 / Correct usage：\n"
                     f"`!login 學號 密碼`\n"
                     f"`!login student_id password`\n\n"
-                    # f"{'📋 您的身分組 / Your role：`' + user_class_name + '`' if user_class_name else '⚠️ 您尚未選擇身分組'}\n\n"
                     f"💡 提示：您也可以在私訊中使用此指令\n"
                     f"💡 Tip: You can also use this command in DM"
                 )
@@ -1010,28 +990,6 @@ class HomeworkBot:
             # 班級頻道登入：限制在對應班級中查找
             guild = self.client.guilds[0] if self.client.guilds else None
             member = guild.get_member(user_id) if guild else None
-            # user_class_name = self.get_user_class_from_roles(member)
-            
-            # if not user_class_name:
-            #     await message.author.send(
-            #         "⚠️ **需要先選擇身分組 / Need to Choose Role First**\n\n"
-            #         "請先完成以下步驟：\n"
-            #         "Please complete the following steps:\n\n"
-            #         "**步驟 1：到歡迎頻道選擇身分組**\n"
-            #         "**step 1: Choose role in welcome channel**\n"
-            #         "• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
-            #         "• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
-            #         "• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM\n\n"
-            #         "**步驟 2：在私訊/班級頻道中登入**\n"
-            #         "**step 2: Login via DM/Class channel**\n"
-            #         "• `!login 學號 密碼`\n"
-            #         "• `!login student_id password`\n"
-            #     )
-            #     try:
-            #         await message.delete()
-            #     except:
-            #         pass
-            #     return
             
             # 根據用戶身分組驗證登入
             success = await self.verify_and_login(message.author, student_number, password)
@@ -1047,8 +1005,8 @@ class HomeworkBot:
                 await message.author.send(
                     f"❌ **登入失敗 / Login Failed**\n\n"
                     f"可能的原因 / Possible reasons：\n"
-                    # f"• 學號 `{student_number}` 不存在於 `{user_class_name}` 班級中\n"
-                    # f"  Student ID does not exist in {user_class_name} class\n"
+                    f"• 學號 `{student_number}` 不存在於班級中\n"
+                    f"  Student ID does not exist in any class\n"
                     f"• 密碼錯誤 / Incorrect password\n"
                     f"• 該學號已綁定其他 Discord 帳號\n"
                     f"  Already bound to another Discord account\n\n"
@@ -1115,35 +1073,6 @@ class HomeworkBot:
             role_assigned = await self.assign_role_after_login(user, class_name_db)
             if not role_assigned:
                 print(f"⚠️ 警告：為用戶 {user.id} 分配身分組 {class_name_db} 失敗，但將繼續登入流程")
-
-            # # 檢查用戶的身分組是否與學號班級一致
-            # guild = self.client.guilds[0]  # 假設機器人只在一個伺服器中
-            # member = guild.get_member(user.id)
-            # user_class = self.get_user_class_from_roles(member)
-
-            # if not user_class:
-            #     await user.send(
-            #         "⚠️ **需要先選擇身分組 / Need to Choose Role First**\n\n"
-            #         "請到歡迎頻道選擇您的學校身分組：\n"
-            #         "Please go to welcome channel to choose your school role:\n\n"
-            #         "• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
-            #         "• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
-            #         "• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM\n"
-            #         "• `!join HWIS` - HWIS / HWIS"
-            #     )
-            #     print("❌ 用戶尚未選擇身分組")
-            #     return False
-
-            # if user_class != class_name_db:
-            #     await user.send(
-            #         f"❌ **身分組與學號不匹配 / Role does not match student ID**\n\n"
-            #         f"您的身分組 / Your role：`{user_class}`\n"
-            #         f"學號對應班級 / Student ID class：`{class_name_db}`\n\n"
-            #         f"請確認您的身分組選擇正確，或聯繫管理員\n"
-            #         f"Please confirm your role selection or contact administrator"
-            #     )
-            #     print(f"❌ 用戶身分組 '{user_class}' 與學號班級 '{class_name_db}' 不匹配")
-            #     return False
 
             # 步驟5：檢查該學號的 Discord 綁定狀態
             print(f"🔍 檢查學號的 Discord 綁定狀態: '{discord_id_in_db}' (type: {type(discord_id_in_db)})")
@@ -1236,112 +1165,6 @@ class HomeworkBot:
         safe_name = re.sub(r'[<>:"/\\|?*]', '_', filename)
         return safe_name
 
-    # async def handle_join_role(self, message, role_type):
-    #     """處理加入身分組的請求"""
-    #     try:
-    #         user_id = message.author.id
-    #         member = message.guild.get_member(user_id)
-            
-    #         # 檢查用戶是否已經有身分組
-    #         existing_class = self.get_user_class_from_roles(member)
-    #         if existing_class:
-    #             await message.author.send(
-    #                 f"⚠️ **您已經擁有身分組 / You already have a role**\n\n"
-    #                 f"目前身分組 / Current role：`{existing_class}`\n\n"
-    #                 f"⚠️ 每人只能選擇一個身分組，且選擇後無法更改\n"
-    #                 f"⚠️ Each person can only choose one role, and it cannot be changed"
-    #             )
-    #             try:
-    #                 await message.delete()
-    #             except:
-    #                 pass
-    #             return
-            
-    #         # 驗證身分組類型
-    #         valid_roles = {
-    #             "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
-    #             "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
-    #             "CYCUIUBM": (CYCUIUBM_ROLE_ID, CYCUIUBM_ROLE_NAME),
-    #             "HWIS": (HWIS_ROLE_ID, HWIS_ROLE_NAME),
-    #         }
-            
-    #         if role_type not in valid_roles:
-    #             await message.author.send(
-    #                 f"❌ **無效的身分組代碼 / Invalid role code**\n\n"
-    #                 f"請使用以下代碼之一：\n"
-    #                 f"Please use one of the following codes:\n\n"
-    #                 f"• `!join NCUFN` - 中央大學財金系 / NCU Finance\n"
-    #                 f"• `!join NCUEC` - 中央大學經濟系 / NCU Economics\n"
-    #                 f"• `!join CYCUIUBM` - 中原大學國商學程 / CYCU IUBM\n"
-    #                 f"• `!join HWIS` - HWIS / HWIS"
-    #             )
-    #             try:
-    #                 await message.delete()
-    #             except:
-    #                 pass
-    #             return
-            
-    #         # 獲取身分組
-    #         role_id, role_name = valid_roles[role_type]
-    #         role = None
-            
-    #         if role_id:
-    #             role = discord.utils.get(message.guild.roles, id=role_id)
-            
-    #         if role is None and role_name:
-    #             role = discord.utils.get(message.guild.roles, name=role_name)
-            
-    #         if role is None:
-    #             await message.author.send(
-    #                 f"❌ **系統錯誤 / System Error**\n\n"
-    #                 f"找不到身分組：{role_type}\n"
-    #                 f"Role not found: {role_type}\n\n"
-    #                 f"請聯繫管理員 / Please contact administrator"
-    #             )
-    #             try:
-    #                 await message.delete()
-    #             except:
-    #                 pass
-    #             return
-            
-    #         # 分配身分組
-    #         await member.add_roles(role, reason=f"User joined {role_type}")
-            
-    #         await message.author.send(
-    #             f"✅ **身分組分配成功 / Role Assigned Successfully**\n\n"
-    #             f"🎓 您的身分組 / Your role：`{role.name}`\n"
-    #             f"🔑 **下一步：登入系統 / Next Step: Login**\n"
-    #             f"請使用以下指令登入：\n"
-    #             f"Please use the following command to login:\n\n"
-    #             f"• 在班級頻道：`!login 學號 密碼`\n"
-    #             f"  In class channel: `!login student_id password`\n"
-    #             f"• 或在私訊中：`!login 學號 密碼`\n"
-    #             f"  Or in DM: `!login student_id password`\n\n"
-    #             f"💡 私訊登入更方便且安全！\n"
-    #             f"💡 Login via DM is more convenient and secure!"
-    #         )
-            
-    #         print(f"✅ 已為用戶 {user_id} 分配身分組 {role.name}")
-            
-    #         try:
-    #             await message.delete()
-    #         except:
-    #             pass
-            
-    #     except Exception as e:
-    #         await message.author.send(
-    #             f"❌ **分配身分組時發生錯誤 / Error assigning role**\n\n"
-    #             f"錯誤訊息 / Error message：{e}\n\n"
-    #             f"請聯繫管理員 / Please contact administrator"
-    #         )
-    #         print(f"❌ 分配身分組錯誤: {e}")
-    #         traceback.print_exc()
-            
-    #         try:
-    #             await message.delete()
-    #         except:
-    #             pass
-
     async def show_my_submissions(self, message):
         """顯示用戶的作業提交記錄"""
         try:
@@ -1352,9 +1175,8 @@ class HomeworkBot:
             if not student_data:
                 await message.author.send(
                     "❌ 找不到您的學生資料 / Cannot find your student data\n\n"
-                    "請先使用以下任一方式登入：\n"
+                    "請先使用以下方式登入：\n"
                     "Please login first using one of the following methods:\n\n"
-                    # "• `!join 學校代碼` - 選擇學校身分\n"
                     "• `!login 學號 密碼` - 使用學號密碼登入"
                 )
                 try:
