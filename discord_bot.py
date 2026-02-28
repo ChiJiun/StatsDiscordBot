@@ -17,6 +17,10 @@ from database import DatabaseManager
 from html_parser import extract_html_content, extract_html_title
 from grading import GradingService
 from file_handler import FileHandler
+import io
+import pandas as pd
+import json
+from html_parser import extract_html_content, extract_html_title, extract_scores_from_html_string
 
 
 class HomeworkBot:
@@ -315,6 +319,7 @@ class HomeworkBot:
                 help_text += (
                     "\n👑 **管理員專用功能 / Admin Functions**:\n"
                     "• `!update-welcome` - 更新歡迎訊息 / Update welcome message\n"
+                    "• `!score 班級 題目` - 匯出指定班級和題目的成績 / Export scores for specific class and question\n"
                 )
 
             help_text += (
@@ -340,6 +345,18 @@ class HomeworkBot:
             await self.show_my_submissions(message)
             should_delete = True
 
+        # 處理管理員匯出成績指令 (!score 班級 題目代碼)
+        elif message.content.lower().startswith("!score"):
+            # 檢查權限：比對 ADMIN_ROLE_ID 或是具有伺服器管理員權限
+            is_admin = any(role.id == ADMIN_ROLE_ID for role in message.author.roles) or message.author.guild_permissions.administrator
+            
+            if not is_admin:
+                await message.author.send("⛔ **權限不足 / Access Denied**\n此指令僅限管理員 (ADMIN) 使用。")
+                should_delete = True
+            else:
+                await self.export_class_scores(message)
+                should_delete = True
+
         # 擋下歡迎頻道的閒聊與無效訊息 (引導使用 !login)
         elif message.channel.id == WELCOME_CHANNEL_ID:
             await message.author.send(
@@ -347,8 +364,8 @@ class HomeworkBot:
                 "👋 **Welcome!** This channel is for logging in.\n\n"
                 "請輸入 `!login 學號 密碼` 來登入，系統將為您自動分配身分組。\n"
                 "Please use `!login student_id password` to login and automatically get your class role.\n\n"
-                "⚠️ 請勿在此頻道進行其他操作\n"
-                "⚠️ Please do not perform other operations in this channel"
+                "⚠️ 請勿在歡迎頻道進行其他操作\n"
+                "⚠️ Please do not perform other operations in welcome channel"
             )
             should_delete = True
 
@@ -426,8 +443,8 @@ class HomeworkBot:
                 "👋 **Welcome!** This channel is for logging in.\n\n"
                 "請輸入 `!login 學號 密碼` 來登入，系統將為您自動分配身分組。\n"
                 "Please use `!login student_id password` to login and automatically get your class role.\n"
-                "⚠️ 請勿在此頻道進行其他操作\n"
-                "⚠️ Please do not perform other operations in this channel"
+                "⚠️ 請勿在歡迎頻道進行其他操作\n"
+                "⚠️ Please do not perform other operations in welcome channel"
             )
             should_delete = True
 
@@ -798,17 +815,24 @@ class HomeworkBot:
                 )
                 return
 
-            # ========== 將提交記錄寫入資料庫 ==========
-            print(f"💾 正在將提交記錄寫入資料庫...")
+            # ========== 即時解析成績與寫入資料庫 ==========
+            print(f"💾 正在解析成績並寫入資料庫...")
             try:
-                # ✅ 修正參數名稱，與 database.py 的方法定義一致
+                # 讀取剛剛生成的 HTML 報告檔案進行成績解析
+                with open(report_path, "r", encoding="utf-8") as f:
+                    html_content = f.read()
+                
+                parsed_data, ordered_keys = extract_scores_from_html_string(html_content)
+                
                 db_insert_success = self.db.insert_submission(
-                    discord_id=user_id,  # ✅ Discord ID（查詢鍵）
+                    discord_id=user_id,
                     student_name=db_student_name,
-                    student_number=student_number or student_id_from_html,  # ✅ 學號（僅供顯示）
+                    student_number=student_number or student_id_from_html,
                     question_title=html_title,
                     attempt_number=attempt_number,
-                    html_path=save_path
+                    html_path=save_path,
+                    parsed_scores=parsed_data,  # 傳入成績字典
+                    score_keys=ordered_keys     # 傳入欄位順序
                 )
                 
                 if db_insert_success:
@@ -1024,6 +1048,86 @@ class HomeworkBot:
         except Exception as e:
             await message.author.send(f"❌ 登入過程發生錯誤 / Error during login：{e}")
             print(f"❌ 登入過程發生錯誤: {e}")
+            traceback.print_exc()
+
+    async def export_class_scores(self, message):
+        """助教專用：抓取班級特定題目的所有成績並匯出 Excel"""
+        try:
+            parts = message.content.split()
+            if len(parts) < 3:
+                await message.author.send(
+                    "❌ **指令格式錯誤**\n正確用法：`!score <班級名稱> <題目代碼>`\n例如：`!score NCUFN Four-Step_Final`"
+                )
+                return
+
+            class_name = parts[1]
+            question_title = " ".join(parts[2:])
+            
+            # 從資料庫獲取全班歷次成績
+            records = self.db.get_all_scores_for_class(class_name, question_title)
+            
+            # 1. 如果連名單都空了，代表「班級名稱」打錯
+            if not records:
+                await message.author.send(f"⚠️ 找不到班級 `{class_name}` 的學生名單，請確認「班級代碼」是否正確。")
+                return
+
+            # 2. 檢查全班是否有人交作業
+            has_submissions = any(row[2] is not None for row in records)
+            
+            # 根據是否有繳交紀錄，決定要發送給助教的訊息文字
+            if not has_submissions:
+                reply_text = (
+                    f"📝 **目前尚無人繳交**\n"
+                    f"班級 `{class_name}` 目前**還沒有任何學生**繳交 `{question_title}` 的作業喔！\n"
+                    f"*💡 系統已為您匯出全班的空白名單。如果您確定已經有學生繳交，請檢查「題目代碼」是否有錯字！*"
+                )
+            else:
+                reply_text = (
+                    f"✅ **成績匯出成功**\n"
+                    f"這是一份包含 `{class_name}` 班級所有學生 `{question_title}` **歷次提交**成績的 Excel 表格："
+                )
+
+            # --- 下方的組裝邏輯完全不變 ---
+            all_data = []
+            master_keys = ["學號", "姓名", "作答次數"]
+
+            for row in records:
+                stu_num, stu_name, attempt, scores_json, keys_json = row
+                data_dict = {
+                    "學號": stu_num,
+                    "姓名": stu_name,
+                    "作答次數": attempt if attempt else ""
+                }
+                
+                if scores_json:
+                    scores = json.loads(scores_json)
+                    data_dict.update(scores)
+                    
+                    keys = json.loads(keys_json) if keys_json else []
+                    for k in keys:
+                        if k not in master_keys:
+                            master_keys.append(k)
+                            
+                all_data.append(data_dict)
+
+            df = pd.DataFrame.from_records(all_data)
+            final_cols = [c for c in master_keys if c in df.columns]
+            df = df[final_cols]
+
+            buffer = io.BytesIO()
+            with pd.ExcelWriter(buffer, engine='openpyxl') as writer:
+                df.to_excel(writer, index=False, sheet_name="Scores")
+            buffer.seek(0)
+
+            file = discord.File(fp=buffer, filename=f"{class_name}_{question_title}_All_Scores.xlsx")
+            
+            # 使用我們剛剛設定好的動態文字回覆
+            await message.author.send(reply_text, file=file)
+
+        except Exception as e:
+            await message.author.send(f"❌ 匯出成績時發生錯誤：{e}")
+            print(f"❌ export_class_scores 錯誤: {e}")
+            import traceback
             traceback.print_exc()
 
     async def verify_and_login(self, user, student_number, password):
