@@ -93,9 +93,13 @@ SPECIFIC_PROMPTS = {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-step_Proportion Test.txt")
     },
-    "FRQ_Confidence Interval": {
+    "FRQ_Confidence Interval for Proportion_CB": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-        "statistics": os.path.join(PROMPTS_DIR, "FRQ_Confidence Interval.txt")
+        "statistics": os.path.join(PROMPTS_DIR, "FRQ_Confidence Interval for Proportion_CB.txt")
+    },
+    "FRQ_Ch6_CI for P": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "FRQ_Ch6_CI for P.txt")
     }
 }
 
