@@ -33,6 +33,7 @@ class HomeworkBot:
         self.db = DatabaseManager()
         self.session = None
         self.force_welcome = force_welcome
+        self.is_open = True  # 機器人開關狀態，預設為開啟
 
         # 身分組對應班級名稱 - 改為英文
         self.role_to_class = {
@@ -81,6 +82,149 @@ class HomeworkBot:
             return user_class, self.class_channels[user_class]
         return user_class, None
 
+    async def remove_role_members(self, message):
+        """移除指定身份組的所有成員"""
+        try:
+            # 解析指令
+            parts = message.content.split(maxsplit=1)
+            
+            if len(parts) < 2:
+                await message.author.send(
+                    "❌ **指令格式錯誤 / Command Format Error**\n\n"
+                    "正確用法 / Correct usage：\n"
+                    "`!remove-role-members 身份組名稱`\n"
+                    "`!remove-role-members role_name`\n\n"
+                    "範例 / Example：\n"
+                    "`!remove-role-members NCUFN`\n"
+                    "`!remove-role-members NCUEC`"
+                )
+                return
+            
+            role_name = parts[1].strip()
+            
+            # 獲取伺服器
+            guild = message.guild
+            if not guild:
+                await message.author.send("❌ 無法獲取伺服器資訊 / Cannot get server info")
+                return
+            
+            # 尋找身份組
+            role = discord.utils.get(guild.roles, name=role_name)
+            if not role:
+                await message.author.send(
+                    f"❌ **找不到身份組 / Role Not Found**\n\n"
+                    f"身份組名稱：`{role_name}`\n\n"
+                    f"請確認身份組名稱是否正確。\n"
+                    f"Please confirm the role name is correct."
+                )
+                return
+            
+            # 獲取擁有該身份組的所有成員
+            members_with_role = [member for member in guild.members if role in member.roles]
+            
+            if not members_with_role:
+                await message.author.send(
+                    f"ℹ️ **身份組中沒有成員 / No Members in Role**\n\n"
+                    f"身份組：`{role_name}`\n\n"
+                    f"該身份組目前沒有任何成員。\n"
+                    f"This role currently has no members."
+                )
+                return
+            
+            # 發送確認訊息
+            total_members = len(members_with_role)
+            await message.author.send(
+                f"⏳ **正在移除身份組成員 / Removing Role Members**\n\n"
+                f"身份組：`{role_name}`\n"
+                f"成員數量：{total_members}\n\n"
+                f"處理中，請稍候...\n"
+                f"Processing, please wait..."
+            )
+            
+            # 移除成員
+            success_count = 0
+            failed_count = 0
+            failed_members = []
+            
+            for member in members_with_role:
+                try:
+                    await member.remove_roles(role, reason=f"Bulk removal by admin: {message.author.name}")
+                    success_count += 1
+                    print(f"✅ 已移除 {member.name} 的身份組 {role_name}")
+                except Exception as e:
+                    failed_count += 1
+                    failed_members.append(f"{member.name} ({member.id})")
+                    print(f"❌ 移除 {member.name} 的身份組時失敗: {e}")
+            
+            # 發送結果報告
+            result_message = (
+                f"✅ **身份組成員移除完成 / Role Members Removal Complete**\n\n"
+                f"身份組：`{role_name}`\n"
+                f"總成員數 / Total members：{total_members}\n"
+                f"成功移除 / Successfully removed：{success_count}\n"
+                f"失敗 / Failed：{failed_count}\n"
+            )
+            
+            if failed_members:
+                result_message += "\n❌ **移除失敗的成員 / Failed Members**:\n"
+                for failed_member in failed_members[:10]:  # 只顯示前10個
+                    result_message += f"• {failed_member}\n"
+                if len(failed_members) > 10:
+                    result_message += f"... 以及其他 {len(failed_members) - 10} 位成員\n"
+            
+            await message.author.send(result_message)
+            print(f"✅ 身份組 {role_name} 成員移除完成：{success_count}/{total_members}")
+            
+        except Exception as e:
+            await message.author.send(f"❌ 移除身份組成員時發生錯誤 / Error removing role members：{e}")
+            print(f"❌ remove_role_members 錯誤: {e}")
+            traceback.print_exc()
+    
+    async def broadcast_status_to_class_channels(self, status_message, is_open_status):
+        """廣播狀態訊息到所有班級頻道，並刪除舊的狀態訊息"""
+        try:
+            if not self.class_channels:
+                print("⚠️ 未設定班級頻道，無法廣播狀態")
+                return
+            
+            # 狀態訊息的識別標記
+            status_identifier = "【系統狀態】"
+            
+            for class_name, channel_id in self.class_channels.items():
+                try:
+                    channel = self.client.get_channel(channel_id)
+                    if not channel:
+                        print(f"❌ 找不到班級頻道: {class_name} (ID: {channel_id})")
+                        continue
+                    
+                    # 刪除舊的狀態訊息
+                    deleted_count = 0
+                    async for old_message in channel.history(limit=50):
+                        if (
+                            old_message.author == self.client.user
+                            and status_identifier in old_message.content
+                        ):
+                            try:
+                                await old_message.delete()
+                                deleted_count += 1
+                            except (discord.Forbidden, discord.NotFound):
+                                pass
+                    
+                    if deleted_count > 0:
+                        print(f"🧹 已刪除 {class_name} 頻道的 {deleted_count} 個舊狀態訊息")
+                    
+                    # 發送新的狀態訊息（帶有識別標記）
+                    await channel.send(f"{status_identifier}\n{status_message}")
+                    print(f"✅ 狀態訊息已發送到 {class_name} 頻道")
+                    
+                except Exception as e:
+                    print(f"❌ 處理 {class_name} 頻道時發生錯誤: {e}")
+            
+            print(f"✅ 狀態廣播完成（狀態：{'開啟' if is_open_status else '關閉'}）")
+            
+        except Exception as e:
+            print(f"❌ 廣播狀態訊息時發生錯誤: {e}")
+    
     async def notify_administrators(self, title, description, error_details=None, severity="warning"):
         """發送通知給管理員"""
         try:
@@ -320,6 +464,9 @@ class HomeworkBot:
                     "\n👑 **管理員專用功能 / Admin Functions**:\n"
                     "• `!update-welcome` - 更新歡迎訊息 / Update welcome message\n"
                     "• `!score 班級 題目` - 匯出指定班級和題目的成績 / Export scores for specific class and question\n"
+                    "• `!open` - 開啟作業批改功能 / Enable homework grading\n"
+                    "• `!close` - 關閉作業批改功能（僅刪除訊息）/ Disable homework grading (delete messages only)\n"
+                    "• `!remove-role-members 身份組名稱` - 移除指定身份組的所有成員 / Remove all members from a role\n"
                 )
 
             help_text += (
@@ -355,6 +502,63 @@ class HomeworkBot:
                 should_delete = True
             else:
                 await self.export_class_scores(message)
+                should_delete = True
+
+        # 處理管理員開啟作業批改功能
+        elif message.content.lower() == "!open":
+            is_admin = any(role.id == ADMIN_ROLE_ID for role in message.author.roles) or message.author.guild_permissions.administrator
+            
+            if not is_admin:
+                await message.author.send("⛔ **權限不足 / Access Denied**\n此指令僅限管理員使用。")
+                should_delete = True
+            else:
+                self.is_open = True
+                # 廣播狀態到所有班級頻道
+                status_message = (
+                    "✅ **作業批改功能已開啟 / Homework Grading Enabled**\n"
+                    "現在可以接收和批改作業了。\n"
+                    "Now accepting and grading homework submissions."
+                )
+                await self.broadcast_status_to_class_channels(status_message, True)
+                # 向管理員發送確認訊息
+                await message.author.send(
+                    "✅ 作業批改功能已開啟，狀態訊息已發送到所有班級頻道。\n"
+                    "✅ Homework grading enabled, status message sent to all class channels."
+                )
+                should_delete = True
+
+        # 處理管理員關閉作業批改功能
+        elif message.content.lower() == "!close":
+            is_admin = any(role.id == ADMIN_ROLE_ID for role in message.author.roles) or message.author.guild_permissions.administrator
+            
+            if not is_admin:
+                await message.author.send("⛔ **權限不足 / Access Denied**\n此指令僅限管理員使用。")
+                should_delete = True
+            else:
+                self.is_open = False
+                # 廣播狀態到所有班級頻道
+                status_message = (
+                    "🔒 **作業批改功能已關閉 / Homework Grading Disabled**\n"
+                    "暫時不接受作業提交，上傳的檔案將被刪除。\n"
+                    "Temporarily not accepting submissions, uploaded files will be deleted."
+                )
+                await self.broadcast_status_to_class_channels(status_message, False)
+                # 向管理員發送確認訊息
+                await message.author.send(
+                    "🔒 作業批改功能已關閉，狀態訊息已發送到所有班級頻道。\n"
+                    "🔒 Homework grading disabled, status message sent to all class channels."
+                )
+                should_delete = True
+
+        # 處理管理員移除身份組成員指令
+        elif message.content.lower().startswith("!remove-role-members"):
+            is_admin = any(role.id == ADMIN_ROLE_ID for role in message.author.roles) or message.author.guild_permissions.administrator
+            
+            if not is_admin:
+                await message.author.send("⛔ **權限不足 / Access Denied**\n此指令僅限管理員使用。")
+                should_delete = True
+            else:
+                await self.remove_role_members(message)
                 should_delete = True
 
         # 擋下歡迎頻道的閒聊與無效訊息 (引導使用 !login)
@@ -462,6 +666,16 @@ class HomeworkBot:
                     break
             
             if html_attachment:
+                # 檢查機器人是否處於開啟狀態
+                if not self.is_open:
+                    # 關閉狀態：僅刪除訊息，不批改
+                    try:
+                        await message.delete()
+                    except (discord.Forbidden, discord.NotFound):
+                        pass
+                    return
+                
+                # 開啟狀態：正常處理作業
                 # 傳遞正確的三個參數 (message, file, user_id)
                 await self.process_html_file(message, html_attachment, user_id)
                 # 這裡不需要 should_delete = True，因為 _process_html_file 內部會處理刪除
