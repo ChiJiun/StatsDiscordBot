@@ -33,6 +33,7 @@ class HomeworkBot:
         self.db = DatabaseManager()
         self.session = None
         self.force_welcome = force_welcome
+        self.is_open = True  # 機器人開關狀態，預設為開啟
 
         # 身分組對應班級名稱 - 改為英文
         self.role_to_class = {
@@ -81,6 +82,51 @@ class HomeworkBot:
             return user_class, self.class_channels[user_class]
         return user_class, None
 
+    async def broadcast_status_to_class_channels(self, status_message, is_open_status):
+        """廣播狀態訊息到所有班級頻道，並刪除舊的狀態訊息"""
+        try:
+            if not self.class_channels:
+                print("⚠️ 未設定班級頻道，無法廣播狀態")
+                return
+            
+            # 狀態訊息的識別標記
+            status_identifier = "【系統狀態】"
+            
+            for class_name, channel_id in self.class_channels.items():
+                try:
+                    channel = self.client.get_channel(channel_id)
+                    if not channel:
+                        print(f"❌ 找不到班級頻道: {class_name} (ID: {channel_id})")
+                        continue
+                    
+                    # 刪除舊的狀態訊息
+                    deleted_count = 0
+                    async for old_message in channel.history(limit=50):
+                        if (
+                            old_message.author == self.client.user
+                            and status_identifier in old_message.content
+                        ):
+                            try:
+                                await old_message.delete()
+                                deleted_count += 1
+                            except (discord.Forbidden, discord.NotFound):
+                                pass
+                    
+                    if deleted_count > 0:
+                        print(f"🧹 已刪除 {class_name} 頻道的 {deleted_count} 個舊狀態訊息")
+                    
+                    # 發送新的狀態訊息（帶有識別標記）
+                    await channel.send(f"{status_identifier}\n{status_message}")
+                    print(f"✅ 狀態訊息已發送到 {class_name} 頻道")
+                    
+                except Exception as e:
+                    print(f"❌ 處理 {class_name} 頻道時發生錯誤: {e}")
+            
+            print(f"✅ 狀態廣播完成（狀態：{'開啟' if is_open_status else '關閉'}）")
+            
+        except Exception as e:
+            print(f"❌ 廣播狀態訊息時發生錯誤: {e}")
+    
     async def notify_administrators(self, title, description, error_details=None, severity="warning"):
         """發送通知給管理員"""
         try:
@@ -320,6 +366,8 @@ class HomeworkBot:
                     "\n👑 **管理員專用功能 / Admin Functions**:\n"
                     "• `!update-welcome` - 更新歡迎訊息 / Update welcome message\n"
                     "• `!score 班級 題目` - 匯出指定班級和題目的成績 / Export scores for specific class and question\n"
+                    "• `!open` - 開啟作業批改功能 / Enable homework grading\n"
+                    "• `!close` - 關閉作業批改功能（僅刪除訊息）/ Disable homework grading (delete messages only)\n"
                 )
 
             help_text += (
@@ -355,6 +403,52 @@ class HomeworkBot:
                 should_delete = True
             else:
                 await self.export_class_scores(message)
+                should_delete = True
+
+        # 處理管理員開啟作業批改功能
+        elif message.content.lower() == "!open":
+            is_admin = any(role.id == ADMIN_ROLE_ID for role in message.author.roles) or message.author.guild_permissions.administrator
+            
+            if not is_admin:
+                await message.author.send("⛔ **權限不足 / Access Denied**\n此指令僅限管理員使用。")
+                should_delete = True
+            else:
+                self.is_open = True
+                # 廣播狀態到所有班級頻道
+                status_message = (
+                    "✅ **作業批改功能已開啟 / Homework Grading Enabled**\n"
+                    "現在可以接收和批改作業了。\n"
+                    "Now accepting and grading homework submissions."
+                )
+                await self.broadcast_status_to_class_channels(status_message, True)
+                # 向管理員發送確認訊息
+                await message.author.send(
+                    "✅ 作業批改功能已開啟，狀態訊息已發送到所有班級頻道。\n"
+                    "✅ Homework grading enabled, status message sent to all class channels."
+                )
+                should_delete = True
+
+        # 處理管理員關閉作業批改功能
+        elif message.content.lower() == "!close":
+            is_admin = any(role.id == ADMIN_ROLE_ID for role in message.author.roles) or message.author.guild_permissions.administrator
+            
+            if not is_admin:
+                await message.author.send("⛔ **權限不足 / Access Denied**\n此指令僅限管理員使用。")
+                should_delete = True
+            else:
+                self.is_open = False
+                # 廣播狀態到所有班級頻道
+                status_message = (
+                    "🔒 **作業批改功能已關閉 / Homework Grading Disabled**\n"
+                    "暫時不接受作業提交，上傳的檔案將被刪除。\n"
+                    "Temporarily not accepting submissions, uploaded files will be deleted."
+                )
+                await self.broadcast_status_to_class_channels(status_message, False)
+                # 向管理員發送確認訊息
+                await message.author.send(
+                    "🔒 作業批改功能已關閉，狀態訊息已發送到所有班級頻道。\n"
+                    "🔒 Homework grading disabled, status message sent to all class channels."
+                )
                 should_delete = True
 
         # 擋下歡迎頻道的閒聊與無效訊息 (引導使用 !login)
@@ -462,6 +556,16 @@ class HomeworkBot:
                     break
             
             if html_attachment:
+                # 檢查機器人是否處於開啟狀態
+                if not self.is_open:
+                    # 關閉狀態：僅刪除訊息，不批改
+                    try:
+                        await message.delete()
+                    except (discord.Forbidden, discord.NotFound):
+                        pass
+                    return
+                
+                # 開啟狀態：正常處理作業
                 # 傳遞正確的三個參數 (message, file, user_id)
                 await self.process_html_file(message, html_attachment, user_id)
                 # 這裡不需要 should_delete = True，因為 _process_html_file 內部會處理刪除
