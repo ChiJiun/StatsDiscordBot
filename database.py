@@ -69,6 +69,12 @@ class DatabaseManager:
         self.cur.execute("CREATE INDEX IF NOT EXISTS idx_assignment_files_student_id ON AssignmentFiles(student_id)")
         self.cur.execute("CREATE INDEX IF NOT EXISTS idx_assignment_files_question ON AssignmentFiles(question_title)")
 
+        try:
+            self.cur.execute("ALTER TABLE AssignmentFiles ADD COLUMN parsed_scores TEXT")
+            self.cur.execute("ALTER TABLE AssignmentFiles ADD COLUMN score_keys TEXT")
+        except sqlite3.OperationalError:
+            pass # 如果欄位已存在會觸發此錯誤，直接忽略即可，確保程式不會崩潰
+
         self.conn.commit()
         print("✅ 資料庫表格建立完成 / Database tables created")
 
@@ -240,24 +246,10 @@ class DatabaseManager:
         print(f"🔍 查詢嘗試次數: Discord ID={discord_id}, 題目={question_title}, 結果={result if result is not None else 0}")
         return result if result is not None else 0
 
+    # 替換原有的 insert_submission
     def insert_submission(self, discord_id, student_name, student_number, question_title, attempt_number, 
-                         html_path):
-        """
-        插入作業提交記錄
-        
-        Args:
-            discord_id (str): Discord ID（主要查詢鍵）
-            student_name (str): 學生姓名
-            student_number (str): 學號（用於顯示）
-            question_title (str): 題目標題
-            attempt_number (int): 嘗試次數
-            html_path (str): HTML 報告檔案路徑
-            feedback (str, optional): 反饋內容
-            report_data (dict, optional): 報告數據
-            
-        Returns:
-            bool: 插入成功返回 True，失敗返回 False
-        """
+                         html_path, parsed_scores=None, score_keys=None):
+        """插入作業提交記錄與解析成績"""
         try:
             # 獲取學生資料（通過 Discord ID）
             student_data = self.get_student_by_discord_id(discord_id)
@@ -267,23 +259,29 @@ class DatabaseManager:
 
             db_student_id, db_student_name, db_student_number, db_discord_id, class_id, class_name = student_data
 
-            # 插入記錄 - user_id 存儲 Discord ID，student_id 存儲學號
+            # 將成績字典與順序清單轉為 JSON 字串
+            scores_json = json.dumps(parsed_scores, ensure_ascii=False) if parsed_scores else None
+            keys_json = json.dumps(score_keys, ensure_ascii=False) if score_keys else None
+
+            # 插入記錄，現在包含了 parsed_scores 和 score_keys
             self.cur.execute(
                 """
                 INSERT INTO AssignmentFiles 
                 (user_id, student_id, class_id, file_path, file_type, question_title, attempt_number, 
-                 upload_time)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+                 upload_time, parsed_scores, score_keys)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
-                    str(discord_id),  # ✅ user_id 欄位存 Discord ID
-                    db_student_number or student_number,  # ✅ student_id 欄位存學號
+                    str(discord_id),
+                    db_student_number or student_number,
                     class_id,
                     html_path,
                     "grading",
                     question_title,
                     attempt_number,
                     datetime.now().isoformat(),
+                    scores_json,  # 儲存成績資料
+                    keys_json     # 儲存欄位順序
                 ),
             )
 
@@ -297,6 +295,29 @@ class DatabaseManager:
             traceback.print_exc()
             self.conn.rollback()
             return False
+
+    # 新增給 TA 查詢成績用的方法
+    def get_all_scores_for_class(self, class_name, question_title):
+        """
+        獲取某班級、特定題目的所有學生「歷次」成績
+        先按學號排序，再按作答次數排序，讓同一個學生的紀錄排在一起
+        """
+        self.cur.execute("""
+            SELECT 
+                s.student_number, 
+                s.student_name, 
+                a.attempt_number, 
+                a.parsed_scores, 
+                a.score_keys
+            FROM Students s
+            JOIN Classes c ON s.class_id = c.class_id
+            -- 使用 LEFT JOIN 確保就算沒繳交作業的學生也會出現在名單上 (成績空白)
+            LEFT JOIN AssignmentFiles a ON s.student_number = a.student_id AND a.question_title = ?
+            WHERE c.class_name = ?
+            ORDER BY s.student_number ASC, a.attempt_number ASC
+        """, (question_title, class_name))
+        
+        return self.cur.fetchall()
 
     def get_student_submissions(self, discord_id, question_title=None):
         """

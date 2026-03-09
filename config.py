@@ -69,7 +69,11 @@ SPECIFIC_PROMPTS = {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "S-M ratio.txt")
     },
-    "Four-Step_Simulation of random guessing": {
+    "SOCS_Midterm": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "S-M ratio.txt")
+    },
+    "Four-Step_Simulation_random guessing": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Simulation.txt")
     },
@@ -81,13 +85,25 @@ SPECIFIC_PROMPTS = {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Population Mean.txt")
     },
-    "Four-step_Final": {
+    "Four-Step_Final": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-step_Final.txt")
     },
-    "Four-step_Proportion Test": {
+    "Four-Step_Proportion Test": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-step_Proportion Test.txt")
+    },
+    "FRQ_Confidence Interval for Proportion_CB": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "FRQ_Confidence Interval for Proportion_CB.txt")
+    },
+    "FRQ_Ch6_CI for P": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "FRQ_Ch6_CI for P.txt")
+    },
+    "Four-Step_T Test": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_T Test.txt")
     }
 }
 
