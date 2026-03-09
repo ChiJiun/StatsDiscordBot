@@ -100,6 +100,10 @@ SPECIFIC_PROMPTS = {
     "FRQ_Ch6_CI for P": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "FRQ_Ch6_CI for P.txt")
+    },
+    "Four-Step_T Test": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_T Test.txt")
     }
 }
 
