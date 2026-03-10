@@ -47,7 +47,7 @@ Conditions:
 The data come from 15 randomly selected transactions, so randomness condition is satisfied.
 2.Independence Condition
 The sample size (n = 15) is less than 10 percent of all transactions at the store, so independence is reasonable.
-3.Normal Condition
+3.Approximately Normal Condition
 Because the sample size is small (n = 15), we examine the sample distribution.
 4.A boxplot or graph of the data shows no strong skewness or outliers.
 5.Therefore, the conditions required for a one-sample t-test for a population mean are satisfied. We will perform a one-sample t-test for a population mean.
@@ -104,7 +104,7 @@ Any value obtained using an appropriate statistical table (e.g., a Z-table, T-ta
 | Do-A | 1 | Correct substitution for (0.939 / sqrt(15)) |
 | Do-A | 1 | Correct test statistic value. t = (4.775 - 5) / (0.939 / sqrt(15)). t ≈ -0.93 |
 | Do-A | 1 | Correct degrees of freedom. df = 15-1 = 14 |
-| Do-A | 1 | Correct p-value. p ≈ 0.185 |
+| Do-A | 1 | Correct p-value. p ≈ 0.185 ( or p>0.1) |
 
 ### Conclude – 5 pts
 
