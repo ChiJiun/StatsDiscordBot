@@ -75,8 +75,10 @@ E for the proportion of customers who prefer using the company’s mobile app.
 ## SCORING RUBRIC (20 pts total)
 (Do not change anything below)
 
-Minor arithmetic or rounding differences that do not change the statistical conclusion should not result in a loss of credit.
-Any value obtained using an appropriate statistical table (e.g., a Z-table, T-table, or chi-square table), or statistical software, with reasonable rounding, should be considered correct.
+- Minor arithmetic or rounding differences that do not change the statistical conclusion should not result in a loss of credit.
+- Any value obtained using an appropriate statistical table (e.g., a Z-table, T-table, or chi-square table), or statistical software, with reasonable rounding, should be considered correct. 
+- Unsimplified Expressions Permitted, It is acceptable if the student only writes the substituted formulas/equations during the process without calculating or simplifying. 
+- In the Conclude Section, the student may use "Comparison using P-value" OR "Comparison using Test Statistic" (comparing the test statistic against the critical value) to earn score.
 
 ### State – 5 pts
 
