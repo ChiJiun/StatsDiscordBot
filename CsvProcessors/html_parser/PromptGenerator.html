@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI 評分 Prompt 生成器 (自動對接爬蟲格式)</title>
+    <title>AI 評分 Prompt 格式生成器</title>
     <style>
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; margin: 0; padding: 20px; line-height: 1.6; }
         .container { max-width: 1000px; margin: auto; background: #fff; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
@@ -31,7 +31,7 @@
 <body>
 
 <div class="container">
-    <h1>📝 AI 評分 Prompt 生成器</h1>
+    <h1>AI 評分 Prompt 生成器</h1>
     <p>填寫以下內容，系統將自動生成符合 <code>crawler.py</code> 抓取格式的 Prompt。</p>
 
     <h2>1. 題目與參考資料 (Reference Materials)</h2>
@@ -50,12 +50,12 @@
     <div id="sectionsContainer">
         </div>
 
-    <button onclick="addSection()">➕ 新增評分大項 (Add Section)</button>
+    <button onclick="addSection()">新增評分大項 (Add Section)</button>
 
     <div class="actions">
         <input type="text" id="fileNameInput" placeholder="輸出檔名 (預設: Grading_Prompt)" style="width: 250px; margin-top: 0;">
-        <button class="btn-success" onclick="generatePrompt()">⚙️ 生成 Prompt 預覽</button>
-        <button class="btn-success" onclick="downloadTxt()" style="background:#f39c12;">📥 下載為 TXT 檔</button>
+        <button class="btn-success" onclick="generatePrompt()">生成 Prompt 預覽</button>
+        <button class="btn-success" onclick="downloadTxt()" style="background:#f39c12;">下載為 TXT 檔</button>
     </div>
 
     <textarea id="outputArea" readonly placeholder="生成的 Prompt 會顯示在這裡..."></textarea>
@@ -91,7 +91,7 @@
                 </div>
                 <div class="criteria-container" id="criteria-${sectionCount}">
                     </div>
-                <button onclick="addCriterion(${sectionCount}, '${title}')">➕ 新增子項目 (Add Item)</button>
+                <button onclick="addCriterion(${sectionCount}, '${title}')">新增子項目 (Add Item)</button>
             </div>
         `;
         document.getElementById('sectionsContainer').insertAdjacentHTML('beforeend', sectionHtml);
@@ -131,7 +131,7 @@
             prompt += `### Model Solution\n${safeSolution}\n\n`;
         }
 
-        prompt += `---\n\n## SCORING RUBRIC\n(Do not change anything below)\n\nMinor arithmetic or rounding differences that do not change the statistical conclusion should not result in a loss of credit.\nAny value obtained using an appropriate statistical table (e.g., a Z-table, T-table, or chi-square table), or statistical software, with reasonable rounding, should be considered correct.\n\n`;
+        prompt += `---\n\n## SCORING RUBRIC\n(Do not change anything below)\n\n- Minor arithmetic or rounding differences that do not change the statistical conclusion should not result in a loss of credit.\n- Any value obtained using an appropriate statistical table (e.g., a Z-table, T-table, or chi-square table), or statistical software, with reasonable rounding, should be considered correct. \n- Unsimplified Expressions Permitted, It is acceptable if the student only writes the substituted formulas/equations during the process without calculating or simplifying. \n- In the Conclude Section, the student may use "Comparison using P-value" OR "Comparison using Test Statistic" (comparing the test statistic against the critical value) to earn score.\n\n`;
 
         const sections = document.querySelectorAll('.section-card');
         
