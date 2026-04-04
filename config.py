@@ -105,9 +105,9 @@ SPECIFIC_PROMPTS = {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-Step_T Test.txt")
     },
-    "Four-Step_NCU0331_Difference in population proportion": {
+    "Four-Step_Difference in population proportion": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
-        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_NCU0331_Difference in population proportion.txt")
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Difference in population proportion.txt")
     }
 }
 
