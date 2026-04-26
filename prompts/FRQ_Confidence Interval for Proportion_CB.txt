@@ -34,29 +34,35 @@ The sample proportion is 0.417, and the margin of error is 0.119. Determining th
 
 ---
 
-## SCORING RUBRIC (9 pts total)
+## SCORING RUBRIC (20 pts total)
 (Do not change anything below)
 
 Minor arithmetic or rounding differences that do not change the statistical conclusion should not result in a loss of credit.
 Any value obtained using an appropriate statistical table (e.g., a Z-table, T-table, or chi-square table), or statistical software, with reasonable rounding, should be considered correct.
 
-### Part (a) – 3 pts
+### Part (a) – 6 pts
 
 | Item | Points | Criteria |
 | ---- | ------ | -------------------------------------------- |
-| Part (a) | 3 | 3 points if the student provides a correct interpretation of the confidence level in the context of the study. A correct interpretation can take one of two approaches:  Based on the concept of repeated sampling, the response must fulfill the following three requirements:  •	Mentions repeated sampling or "in the long run" or "using this method"  •	Mentions that 95 percent of the intervals will capture the population proportion  •	Includes the context of the study  Based on probability, the response must state that there is a 0.95 probability that a random sample selected in the future will produce an interval that captures the actual value of the population proportion of households in the county that have at least one dog.  2 points if the student provides an interpretation of the confidence level that includes two of the three components required for the repeated sampling interpretation OR provides a correct probability interpretation, but not in context.  1 point if the student attempts to interpret a particular confidence interval rather than the confidence level (for example, by saying that we are 95 percent confident that an interval that has been obtained includes the population proportion of households in the county that have at least one dog) OR provides an interpretation of the confidence level that mentions at most one of the three components required for the repeated sampling interpretation. |
+| Part (a) | 6 | 6 points if the student provides a correct interpretation of the confidence level in the context of the study. A correct interpretation can take one of two approaches: Based on the concept of repeated sampling, the response must fulfill the following three requirements:  Mentions repeated sampling or "in the long run" or "using this method".  Mentions that 95 percent of the intervals will capture the population proportion.  Includes the context of the study. Based on probability, the response must state that there is a 0.95 probability that a random sample selected in the future will produce an interval that captures the actual value of the population proportion of households in the county that have at least one dog.  5 points if the student provides an interpretation of the confidence level that is statistically correct but lacks context. This includes:  Providing two of the three components required for the repeated sampling interpretation by including BOTH statistical components (mentioning repeated sampling AND mentioning 95 percent of intervals capturing the proportion) but omitting the context.  OR providing a correct probability interpretation, but not in context.  4 points if the student provides an interpretation of the confidence level that includes the context but is missing one statistical component. This includes:  Providing two of the three components required for the repeated sampling interpretation by including the context PLUS exactly one statistical component (either mentioning repeated sampling OR mentioning 95 percent of intervals capturing the proportion, but not both).  3 points if the student attempts to interpret a particular confidence interval rather than the confidence level, but does so accurately within the context of the study (for example, by saying that we are 95 percent confident that an interval that has been obtained includes the population proportion of households in the county that have at least one dog).  2 points if the student provides an interpretation of the confidence level that mentions exactly one of the three components required for the repeated sampling interpretation (for example, ONLY mentioning the context, or ONLY mentioning "in the long run").  1 point if the student attempts to interpret a particular confidence interval rather than the confidence level AND lacks the context of the study, OR provides a fundamentally flawed interpretation of the confidence level that fails to meet any of the three components required for the repeated sampling interpretation. |
 
-### Part (b) – 3 pts
-
-| Item | Points | Criteria |
-| ---- | ------ | -------------------------------------------- |
-| Part (b) | 3 | 3 points if the student correctly states that because 0.39 (or "the claimed value") is in the computed interval, the interval does not provide evidence that the proportion of dog owners in the county is different from the claimed national proportion.  2 points if the student indicates that the goal is to check whether the claimed value of 0.39 is in the computed interval but makes errors in implementation. Examples of errors include the following:  •	The student notes that 0.39 is within the interval but does not draw a correct conclusion.  •	The student makes an arithmetic error in computing the endpoints of the interval, but the conclusion is consistent with the computed interval.  •	OR  •	The student correctly notes that 0.39 is in the interval and then concludes that 0.39 is the population proportion for the county.  1 point if the student does not recognize how to check whether the claim is consistent with the confidence interval. |
-
-### Part (c) – 3 pts
+### Part (b) – 6 pts
 
 | Item | Points | Criteria |
 | ---- | ------ | -------------------------------------------- |
-| Part (c) | 3 | 3 points if the student provides a correct equation with correct numerical values substituted, as well as a correct integer solution.  2 points if the student provides a correct equation (and substitutions) but makes one or more of the following errors:  •	Does not complete the calculation or completes the calculation incorrectly  •	Uses 0.5 or 0.39 rather than 0.417 as the sample proportion  •	Uses an incorrect but plausible $z^{*}$ value  •	Reports the answer as a non-integer value  •	Gives the calculated value of n as a lower bound for the required sample size  1 point otherwise.  Notes  •	It is acceptable to use $z^{*}=2$ instead of 1.96.  •	It is acceptable for the response to round up or down to get an integer answer. |
+| Part (b) | 6 | 6 points if the student correctly states that because 0.39 (or "the claimed value") is in the computed interval, the interval does not provide evidence that the proportion of dog owners in the county is different from the claimed national proportion.  5 points if the student makes an arithmetic error in computing the endpoints of the interval, but perfectly executes the statistical logic: they check whether 0.39 is in their (incorrectly) computed interval and draw a statistically sound, non-deterministic conclusion that is consistent with their interval.  4 points if the student correctly notes that 0.39 is in the computed interval, but makes a conceptual error by drawing a deterministic conclusion (for example, concluding that 0.39 is the exact population proportion for the county, rather than stating there is a lack of evidence to prove otherwise).  3 points if the student makes an arithmetic error in computing the interval AND makes a deterministic conceptual error in the conclusion (for example, their conclusion is consistent with their faulty interval, but they incorrectly conclude the claimed value is the exact population proportion).  2 points if the student indicates that the goal is to check whether the claimed value of 0.39 is in the computed interval, but fails to complete the process. This includes correctly noting that 0.39 is within the interval but failing to draw any conclusion at all.  1 point if the student does not recognize how to check whether the claim is consistent with the confidence interval (for example, entirely failing to mention 0.39, or comparing the wrong values). |
+
+### Part (c) – 6 pts
+
+| Item | Points | Criteria |
+| ---- | ------ | -------------------------------------------- |
+| Part (c) | 6 | 6 points if the student provides a perfect response: a correct equation with correct numerical values substituted, as well as a correct integer solution.5 points if the student provides a correct equation and substitutions, but makes exactly one minor execution error: reporting the answer as a non-integer value, giving the calculated value of $n$ as a lower bound for the required sample size, OR making a minor arithmetic error in the final calculation.4 points if the student provides a correct equation, but makes exactly one conceptual substitution error: using 0.5 or 0.39 rather than 0.417 as the sample proportion, OR using an incorrect but plausible $z^*$ value. The rest of the calculation must be consistent with this substitution.3 points if the student provides a correct equation but compounds errors, making ONE conceptual substitution error (wrong proportion or wrong $z^*$) AND ONE minor execution error (non-integer answer, lower bound format, or arithmetic error).2 points if the student provides a correct equation (with or without correct substitutions) but completely fails to execute: does not complete the calculation at all, or completes the calculation with severe mathematical errors beyond a simple arithmetic slip.1 point otherwise (for example, the student does not provide a correct equation, does not recognize the formula for sample size, or the response is entirely off-base).Notes It is acceptable to use $z^*=2$ instead of 1.96.It is acceptable for the response to round up or down to get an integer answer. |
+
+### AP-Bonus – 2 pts
+
+| Item | Points | Criteria |
+| ---- | ------ | -------------------------------------------- |
+| AP-Bonus | 2 | 2 points if all three parts (Part a, Part b, Part c) each receive a score of 6. 1 point if exactly two parts receive a score of 6 AND the remaining third part receives a score of 4 or 5. 0 points otherwise. |
 
 ---
 
@@ -71,9 +77,10 @@ To ensure accurate scoring and eliminate arithmetic mistakes, you must perform a
 | Part (a) | | |
 | Part (b) | | |
 | Part (c) | | |
+| AP-Bonus | | |
 | **Total** | Sum of all section scores | |
 
 ### Overall
 - **Feedback:** (constructive, 3–5 sentences)
 - **Suggested Improved Answer:** (model solution written clearly)
-- **Total Score:** XX / 9
+- **Total Score:** XX / 20

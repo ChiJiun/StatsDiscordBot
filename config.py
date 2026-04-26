@@ -100,6 +100,30 @@ SPECIFIC_PROMPTS = {
     "FRQ_Ch6_CI for P": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "FRQ_Ch6_CI for P.txt")
+    },
+    "Four-Step_T Test": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_T Test.txt")
+    },
+    "Four-Step_Difference in population proportion": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Difference in population proportion.txt")
+    },
+    "National Central University": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "National Central University.txt")
+    },
+    "Four-Step_Midterm_2 Sample F-Test for Equal Population Variances": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Midterm_2 Sample F-Test for Equal Population Variances.txt")
+    },
+    "Four-Step_1-Sample Chi squared Test for GOF": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_1-Sample Chi squared Test for GOF.txt")
+    },
+    "Four-Step_Chi-square Test for Independence": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Chi-square Test for Independence.txt")
     }
 }
 

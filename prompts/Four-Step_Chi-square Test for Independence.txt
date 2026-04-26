@@ -19,7 +19,47 @@ Use the rubric below to evaluate the student’s written solution.
 (These are for your understanding only. DO NOT include them in your output.)
 
 ### Problem Statement
-A multinational corporation is testing a new AI-enhanced routing system designed to increase the total continuous handling time that experienced senior agents can manage without burnout. To evaluate the performance of this new system, a Simple Random Sample (SRS) of 30 new routing cycles was monitored. The data collected from these trials showed that agents using the new AI system managed an average of 33.9 hours of continuous handling, with a sample standard deviation of 9.8 hours. Construct and interpret a 99% confidence interval for the true mean continuous handling time (μ) of all senior agents using this new AI-enhanced routing system. Based on this interval, does it appear that the new system results in a mean handling time different from the traditional average of 30 hours?
+As a realtor you want to determine if house style and house location are related. At the 0.05 level of significance, is there evidence of a relationship?
+	House Location
+House Style	Urban	Rural	Total
+Split-Level	63	49	112
+Ranch	15	33	48
+Total	78	82	160
+
+### Model Solution
+1. State: Hypotheses and Parameters
+Goal: We want to determine if there is a significant relationship (dependence) between house style and house location at the α=0.05 significance level.
+•	Hypotheses:
+o	H0: House style and house location are independent (There is no relationship between them).
+o	Ha: House style and house location are dependent (There is a significant relationship between them).
+•	Significance Level: α=0.05.
+________________________________________
+2. Plan: Procedure and Conditions
+Procedure: Chi-square Test for Independence.
+To perform this test validly, we must verify:
+1.	Random: We assume the 160 houses represent a random sample from the target population.
+2.	Independence: The total sample size n=160 is likely less than 10% of all houses in the region.
+3.	Large Counts: All expected counts must be ≥5.
+o	Expected Count (E) = Grand TotalRow Total×Column Total
+o	Min Expected: (48×78)/160=23.4.
+o	Since 23.4≥5, the condition is satisfied.
+________________________________________
+3. Do: Calculations
+Data Summary:
+•	Observed (O): Split/Urban=63, Split/Rural=49, Ranch/Urban=15, Ranch/Rural=33.
+•	Expected (E): Split/Urban=54.6, Split/Rural=57.4, Ranch/Urban=23.4, Ranch/Rural=24.6.
+Calculation:
+1.	Test Statistic (χ2):
+χ2=∑Ei(Oi−Ei)2
+χ2=54.6(63−54.6)2+57.4(49−57.4)2+23.4(15−23.4)2+24.6(33−24.6)2
+χ2=1.291+1.229+3.015+2.868=8.403
+2.	Degrees of Freedom (df): df=(rows−1)(cols−1)=(2−1)(2−1)=1.
+3.	P-value / Critical Value: Using the Chi-square table for df=1,α=0.05:
+o	Critical value χ0.052=3.841.
+________________________________________
+4. Conclude: Interpretation
+Statistical Decision: Since the calculated test statistic χ2=8.403 is greater than the critical value 3.841, it falls into the rejection region. We Reject the null hypothesis (H0) at α=0.05.
+Contextual Conclusion: There is sufficient evidence at the 0.05 level of significance to conclude that there is a significant relationship between house style and house location.
 
 ---
 
@@ -35,41 +75,41 @@ A multinational corporation is testing a new AI-enhanced routing system designed
 
 | Item | Points | Criteria |
 | ---- | ------ | -------------------------------------------- |
-| State-A | 1 | Clearly define the population parameter μ as the true mean continuous handling time for agents using the new AI-enhanced system. |
-| State-B | 1 | Correct identify the desired confidence level as 99%. |
-| State-C | 1 | State the sample mean (xˉ) as 33.9 hours. |
-| State-D | 1 | State the sample standard deviation (s) as 9.8 hours. |
-| State-E | 1 | Explicitly list the sample size (n) as 30 routing cycles. |
+| State-A | 1 | Correct identification of the goal (relationship between style and location). |
+| State-B | 1 | Correct null hypothesis (H0). |
+| State-C | 1 | Correct alternative hypothesis (Ha). |
+| State-D | 1 | Correct identification of α=0.05. |
+| State-E | 1 | Context provided (house style and location). |
 
 ### Plan – 5 pts
 
 | Item | Points | Criteria |
 | ---- | ------ | -------------------------------------------- |
-| Plan-A | 1 | Correct identify the statistical procedure as a one-sample t-interval for the population mean. |
-| Plan-B | 1 | Verify the Randomness condition by referencing the Simple Random Sample (SRS) mentioned in the prompt. |
-| Plan-C | 1 | Verify the Independence (10%) condition: 30≤0.10×(all senior agents), assuming a population greater than 300. |
-| Plan-D | 1 | Verify the Normality condition using the Central Limit Theorem (CLT) because n=30 is sufficient to assume a normal sampling distribution. |
-| Plan-E | 1 | Correct calculate the degrees of freedom (df) as n−1=29. |
+| Plan-A | 1 | Correct identification of the test (Chi-square Test for Independence). |
+| Plan-B | 1 | Verification of randomness. |
+| Plan-C | 1 | Verification of independence (10% rule). |
+| Plan-D | 1 | Calculation of the minimum expected count. |
+| Plan-E | 1 | Statement that all expected counts ≥5. |
 
 ### Do – 5 pts
 
 | Item | Points | Criteria |
 | ---- | ------ | -------------------------------------------- |
-| Do-A | 1 | Correct determine the critical value (t∗) for df=29 at 99% confidence (≈2.756). |
-| Do-B | 1 | Calculate the Standard Error (SE) accurately: 9.8/30≈1.789. |
-| Do-C | 1 | Calculate the Margin of Error (ME): 2.756×1.789≈4.931. |
-| Do-D | 1 | Show the lower bound calculation: 33.9−4.931≈28.97. |
-| Do-E | 1 | Show the upper bound calculation: 33.9+4.931≈38.83, resulting in interval (28.97,38.83). |
+| Do-A | 1 | Correct application of the χ2 formula. |
+| Do-B | 1 | Correct calculation of the test statistic (8.403). |
+| Do-C | 1 | Correct degrees of freedom (df=1). |
+| Do-D | 1 | Correct identification of the critical value (3.841). |
+| Do-E | 1 | Showing the intermediate arithmetic for each cell. |
 
 ### Conclude – 5 pts
 
 | Item | Points | Criteria |
 | ---- | ------ | -------------------------------------------- |
-| Conclude-A | 1 | Begin with the formal interpretative phrase: "We are 99% confident that...". |
-| Conclude-B | 1 | Correct state the numeric interval from 28.97 hours to 38.83 hours. |
-| Conclude-C | 1 | Connect the result back to the specific population parameter: "captures the true mean handling time (μ) for the AI-enhanced routing system". |
-| Conclude-D | 1 | Include the context of the study: "for experienced senior agents managing service calls". |
-| Conclude-E | 1 | Address the original inquiry: State that because the traditional value of 30 hours is within the interval, we lack strong evidence that the new mean differs from the old one. |
+| Conclude-A | 1 | Logical comparison (e.g., "Since the test statistic χ2 is greater than the critical value"). |
+| Conclude-B | 1 | Numerical comparison (e.g., "8.403>3.841"). |
+| Conclude-C | 1 | Correct statistical decision (Reject H0). |
+| Conclude-D | 1 | Proper opening (e.g., "There is sufficient evidence..."). |
+| Conclude-E | 1 | Contextual closing (specifically mentions "relationship between house style and location"). |
 
 ---
 
