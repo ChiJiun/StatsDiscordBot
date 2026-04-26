@@ -1,316 +1,252 @@
-# 📊 統計學智慧評分系統 Discord Bot
+# Discord Statistics FRQ Grading Bot
 
-## Statistics AI Grading System
+This project is a Discord-based grading bot for statistics FRQ submissions. Students log in with their student ID and password, upload HTML answer files in their class channel, and receive AI-assisted feedback on both English expression and statistical content. The system also keeps submission history, stores generated reports, and organizes files in Google Drive.
 
-> 一個基於 Discord 的智慧作業評分系統，提供自動化的英語表達和統計內容雙向評分。
->
-> An intelligent homework grading system based on Discord, providing automated dual assessment for English expression and statistical content.
+The current implementation is a long-running Python bot, not a web app. Its main workflow is:
 
----
+1. Students authenticate in Discord with `!login student_id password`
+2. The bot maps the student to the correct class role and channel
+3. Students upload HTML FRQ response files
+4. The bot parses the HTML title, student info, and answer content
+5. OpenAI generates English and statistics feedback based on question-specific prompts
+6. The system generates an HTML report, saves submission records in SQLite, and uploads files to Google Drive
 
-## 🌟 功能特色 / Features
+## Features
 
-- ✅ **自動評分系統** / Automated Grading
+- Discord login and class-role assignment
+- Multi-class channel support
+- AI-assisted grading for English and statistics
+- Question-specific prompt mapping
+- Submission history and attempt tracking
+- HTML grading report generation
+- SQLite-based student and submission records
+- Google Drive upload for submission files and reports
+- Admin tools for welcome messages, score export, and system open/close control
 
-  - 英語表達評分 (English Expression)
-  - 統計內容評分 (Statistical Content)
-  - AI 驅動的詳細反饋 (AI-driven Detailed Feedback)
-- 👥 **多班級管理** / Multi-Class Management
+## Project Structure
 
-  - 支援三個班級：NCUFN、NCUEC、CYCUIUBM
-  - 獨立的班級頻道 (Separate Class Channels)
-  - 班級統計分析 (Class Statistics)
-- 🔐 **身分驗證系統** / Authentication System
+```text
+Bot/
+├── main.py                    # Entry point
+├── discord_bot.py             # Main Discord bot logic
+├── config.py                  # Environment loading and project configuration
+├── database.py                # SQLite database operations
+├── grading.py                 # OpenAI grading service
+├── html_parser.py             # HTML parsing utilities
+├── file_handler.py            # Local file storage + Google Drive upload
+├── report_generator.py        # HTML report generation
+├── requirements.txt           # Python dependencies
+├── .env.example               # Example environment variables
+├── homework.db                # SQLite database file
+├── prompts/                   # English/statistics grading prompts
+├── Question/                  # Question source files
+├── Answer/                    # Reference answer files
+├── Course List/               # Excel rosters
+├── uploads/                   # Saved student submissions
+├── reports/                   # Generated HTML reports
+└── script/
+    ├── oauth_setup.py         # Google Drive OAuth setup
+    └── student_importer.py    # Import student rosters from Excel
+```
 
-  - Discord 身分組管理 (Role Management)
-  - 學號密碼登入 (Student ID & Password Login)
-  - Discord 帳號綁定 (Discord Account Binding)
-- 📝 **作業追蹤** / Assignment Tracking
+## Requirements
 
-  - 多次提交記錄 (Multiple Submission History)
-  - 詳細評分報告 (Detailed Grading Reports)
-  - 進度統計 (Progress Statistics)
+- Python 3.10+ recommended
+- A Discord bot token
+- An OpenAI API key
+- A Google Cloud OAuth client for Google Drive upload
+- Access to the target Discord server, channels, and roles
 
----
+## Installation
 
-## 📋 系統需求 / Requirements
-
-- Python 3.8 或更高版本 / Python 3.8+
-- Discord Bot Token
-- OpenAI API Key (用於 AI 評分)
-
----
-
-## 🚀 快速開始 / Quick Start
-
-### 1️⃣ 安裝依賴 / Install Dependencies
+Create and activate a virtual environment, then install dependencies:
 
 ```bash
+python -m venv venv
+venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
-### 2️⃣ 配置設定 / Configuration
-
-根目錄匯入.env token.json credentials.json
-Csvprocessors/password_importer 準備各班資料夾
-
-### 3️⃣ 初始化資料庫 / Initialize Database
+If you are using macOS or Linux:
 
 ```bash
-python database.py
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
 ```
 
-這會創建必要的資料表並顯示資料庫管理選單。
+## Configuration
 
-### 4️⃣ (可選) 導入學生密碼 / Import Student Passwords
+Create a `.env` file in the project root. You can copy from `.env.example` and fill in the real values.
 
-準備密碼檔案（格式：`學號_姓名.txt`，內容為密碼）：
+Required environment variables:
+
+```env
+DISCORD_TOKEN=your_discord_bot_token
+OPENAI_API_KEY=your_openai_api_key
+
+UPLOADS_FOLDER_ID=your_google_drive_uploads_folder_id
+REPORTS_FOLDER_ID=your_google_drive_reports_folder_id
+
+WELCOME_CHANNEL_ID=your_welcome_channel_id
+NCUFN_CHANNEL_ID=your_ncufn_channel_id
+NCUEC_CHANNEL_ID=your_ncuec_channel_id
+CYCUIUBM_CHANNEL_ID=your_cycuiubm_channel_id
+HWIS_CHANNEL_ID=your_hwis_channel_id
+
+ADMIN_CHANNEL_ID=your_admin_channel_id
+ADMIN_ROLE_ID=your_admin_role_id
+
+NCUFN_ROLE_ID=optional_role_id
+NCUEC_ROLE_ID=optional_role_id
+CYCUIUBM_ROLE_ID=optional_role_id
+HWIS_ROLE_ID=optional_role_id
+```
+
+Notes:
+
+- `config.py` loads `.env` automatically.
+- The grading model is currently set in [config.py](/c:/Users/USER/OneDrive/Desktop/Stats/code/Bot/config.py:9) as `gpt-5-mini`.
+- SQLite uses `homework.db` in the project root by default.
+- The bot will automatically create local `uploads/` and `reports/` directories if they do not exist.
+
+## Google Drive OAuth Setup
+
+This project uploads both student submissions and generated reports to Google Drive. Before running the bot, place your Google OAuth client file in the project root as `credentials.json`, then run:
 
 ```bash
-python CsvProcessors/password_importer/password_importer.py
+python script/oauth_setup.py
 ```
 
-### 5️⃣ 導入學生資料 / Import Student Data
+This will open the OAuth consent flow locally and generate `token.json`.
 
-準備班級清單 Excel 檔案（放在 `Course List` 資料夾）：
+Required local files for Google Drive integration:
 
-- `course list.xlsx` (包含 NCUFN、NCUEC、CYCUIUBM 三個工作表)
+- `credentials.json`
+- `token.json`
 
-執行導入腳本：
+## Import Student Data
+
+Student rosters are imported from Excel files in the `Course List/` directory. The importer attempts to detect these columns:
+
+- student name
+- student number
+- password
+- optional Discord ID
+
+Run:
 
 ```bash
-python CsvProcessors/student_importer.py
+python script/student_importer.py
 ```
 
-### 6️⃣ 啟動機器人 / Start the Bot
+If your Excel workbook contains multiple sheets, the importer can infer class names from sheet names. Known class names currently used in the project include:
 
-正常啟動：
+- `NCUFN`
+- `NCUEC`
+- `CYCUIUBM`
+
+## How to Start the Bot
+
+After dependencies, `.env`, `credentials.json`, `token.json`, and roster data are ready, start the bot with:
 
 ```bash
 python main.py
 ```
 
-強制更新歡迎訊息：
+To force the bot to resend welcome messages:
 
 ```bash
 python main.py --force-welcome
 ```
 
----
+The entry point is [main.py](/c:/Users/USER/OneDrive/Desktop/Stats/code/Bot/main.py:1), which creates `HomeworkBot` from [discord_bot.py](/c:/Users/USER/OneDrive/Desktop/Stats/code/Bot/discord_bot.py:26) and runs it.
 
-## 📁 專案結構 / Project Structure
+## Discord Usage
 
-```bash
-Bot/
-├── main.py                          # 主程式入口
-├── discord_bot.py                   # Discord 機器人核心
-├── database.py                      # 資料庫管理
-├── grading.py                       # AI 評分服務
-├── html_parser.py                   # HTML 解析器
-├── file_handler.py                  # 檔案處理器
-├── config.py                        # 配置檔案（需自行創建）
-├── requirements.txt                 # Python 依賴套件
-├── homework_bot.db                  # SQLite 資料庫（自動生成）
-│
-├── Course List/                     # 課程清單資料夾
-│   └── course list.xlsx            # 學生名單（三個工作表）
-│
-├── CsvProcessors/                   # 資料處理工具
-│   ├── student_importer.py         # 學生資料導入
-│   └── password_importer/          # 密碼導入工具
-│       ├── password_importer.py
-│       ├── NCUFN/                  # 各班級密碼檔案
-│       ├── NCUEC/
-│       └── CYCUIUBM/
-│
-├── uploads/                         # 上傳檔案儲存（自動生成）
-│   ├── NCUFN/
-│   ├── NCUEC/
-│   └── CYCUIUBM/
-│
-└── reports/                         # 評分報告儲存（自動生成）
-    ├── NCUFN/
-    ├── NCUEC/
-    └── CYCUIUBM/
-```
+### Student commands
 
----
+- `!login 學號 密碼`
+- `!my-submissions`
+- Upload an `.html` file directly in the correct class channel
 
-## 🎮 使用指南 / User Guide
+### Admin commands
 
-### 學生使用流程 / Student Workflow
+- `!help`
+- `!update-welcome`
+- `!score 班級 題目`
+- `!open`
+- `!close`
+- `!remove-role-members 身份組名稱`
 
-1. **加入身分組** (在歡迎頻道)
+## Grading Flow
 
-   ```bash
-   !join NCUFN    # 中央大學財金系
-   !join NCUEC    # 中央大學經濟系
-   !join CYCUIUBM # 中原大學國商學程
-   ```
-2. **登入系統** (在班級頻道)
+1. The student logs in through Discord.
+2. The bot identifies the student's class from the database.
+3. The student uploads an HTML FRQ answer file.
+4. The system extracts:
+   - question title
+   - student name
+   - student ID
+   - answer content
+5. The bot selects the matching English and statistics prompts from `config.py`.
+6. OpenAI generates two feedback sections.
+7. The system builds an HTML report.
+8. Submission metadata and parsed scores are saved into SQLite.
+9. Files are stored locally and uploaded to Google Drive.
 
-   ```bash
-   !login 學號 密碼
-   ```
-3. **上傳作業**
+## Data and Storage
 
-   - 直接拖拽 `.html` 檔案到班級頻道
-   - 系統會自動評分並私訊結果
-4. **查看記錄**
+This project currently uses:
 
-```bash
-!my-submissions  # 查看作業記錄
-!class-stats     # 查看班級統計
-```
+- `homework.db` for SQLite records
+- `uploads/` for raw uploaded student files
+- `reports/` for generated HTML reports
+- Google Drive for organized cloud storage
 
-### 管理員指令 / Admin Commands
+The database includes records for:
 
-```bash
-!class-list              # 查看所有班級
-!student-list 班級名稱    # 查看學生清單
-!update-welcome          # 更新歡迎訊息
-```
+- classes
+- students
+- submission attempts
+- parsed grading scores
 
-### 完整指令列表 / Complete Command List
+## Troubleshooting
 
-```bash
-!help              # 顯示幫助訊息
-!join <學校代碼>    # 加入身分組
-!login 學號 密碼    # 登入系統
-!my-roles          # 查看我的身分
-!class-stats       # 查看班級統計
-!my-submissions    # 查看作業記錄
-```
+### Bot does not start
 
----
+- Check that `.env` exists and `DISCORD_TOKEN` is correct
+- Confirm all dependencies are installed
+- Make sure `credentials.json` and `token.json` are available if Google Drive upload is enabled
 
-## 🗄️ 資料庫結構 / Database Schema
+### Login fails
 
-### Classes (班級表)
+- Confirm the student roster has been imported
+- Check that the student ID and password exist in `homework.db`
 
-```sql
-class_id        INTEGER PRIMARY KEY
-class_name      VARCHAR(50) UNIQUE
-created_at      DATETIME
-```
+### Grading does not run
 
-### Students (學生表)
+- Check that the HTML title matches one of the configured question titles in `SPECIFIC_PROMPTS`
+- Confirm `OPENAI_API_KEY` is valid
+- Check the bot console for OpenAI timeout or prompt-loading errors
 
-```sql
-student_id      INTEGER PRIMARY KEY
-student_name    VARCHAR(100)
-student_number  VARCHAR(50)
-discord_id      VARCHAR(20) UNIQUE
-class_id        INTEGER
-password        VARCHAR(50)
-created_at      DATETIME
-updated_at      DATETIME
-```
+### Google Drive upload fails
 
-### AssignmentFiles (作業檔案表)
+- Re-run `python script/oauth_setup.py`
+- Confirm `UPLOADS_FOLDER_ID` and `REPORTS_FOLDER_ID` are valid
+- Check whether `token.json` has expired or lacks refresh permissions
 
-```sql
-file_id         INTEGER PRIMARY KEY
-student_id      VARCHAR(20)
-class_id        INTEGER
-file_path       VARCHAR(500)
-question_number INTEGER
-attempt_number  INTEGER
-score           REAL
-feedback        TEXT
-upload_time     DATETIME
-```
+## Deployment Notes
 
----
+This project is best deployed as a persistent background service on a VM or server. Because it depends on:
 
-## 🔧 開發工具 / Development Tools
+- a long-running Discord connection
+- local file storage
+- SQLite
+- Google OAuth credentials
 
-### 資料庫管理工具
+it is more suitable for a VM or Docker-based deployment than a stateless frontend hosting platform.
 
-```bash
-python database.py
-```
+## License
 
-提供以下功能：
-
-- 查看資料庫統計
-- 管理班級和學生
-- 檢查資料完整性
-
-### 學生資料導入
-
-```bash
-python CsvProcessors/student_importer.py
-```
-
-### 密碼導入
-
-```bash
-python CsvProcessors/password_importer/password_importer.py
-```
-
----
-
-## 📊 評分系統 / Grading System
-
-### 評分標準 / Grading Criteria
-
-- **英語表達 (English Expression)**: 40%
-
-  - 文法正確性 (Grammar)
-  - 詞彙使用 (Vocabulary)
-  - 表達清晰度 (Clarity)
-- **統計內容 (Statistical Content)**: 60%
-
-  - 概念理解 (Concept Understanding)
-  - 計算準確性 (Calculation Accuracy)
-  - 解釋完整性 (Interpretation Completeness)
-
-### 評分等級 / Grading Levels
-
-- A (90-100): 優秀 / Excellent
-- B (80-89): 良好 / Good
-- C (70-79): 及格 / Pass
-- D (60-69): 需改進 / Needs Improvement
-- F (0-59): 不及格 / Fail
-
----
-
-## 🛠️ 疑難排解 / Troubleshooting
-
-### 常見問題 / Common Issues
-
-**Q: 機器人無法啟動？**
-
-- 檢查 `config.py` 是否正確配置
-- 確認 Discord Token 有效
-- 檢查 Python 版本是否 >= 3.8
-
-**Q: 無法上傳作業？**
-
-- 確認已完成登入或加入身分組
-- 檢查是否在正確的班級頻道
-- 確認檔案格式為 `.html`
-
-**Q: 評分失敗？**
-
-- 檢查 OpenAI API Key 是否有效
-- 確認 API 配額是否充足
-- 查看機器人控制台的錯誤訊息
-
-**Q: 學生資料導入失敗？**
-
-- 確認 Excel 檔案格式正確
-- 檢查工作表名稱是否為 NCUFN、NCUEC、CYCUIUBM
-- 確認必要欄位（Student ID、Name、Password）存在
-
-## 📮 聯絡方式 / Contact
-
-如有問題或建議，請聯繫系統管理員。
-
-## ⚠️ 注意事項 / Important Notes
-
-1. **資料安全**：請妥善保管 `config.py` 和資料庫檔案
-2. **API 配額**：注意 OpenAI API 的使用配額
-3. **備份**：定期備份 `homework_bot.db` 資料庫
-4. **隱私**：學生資料僅用於評分系統，請遵守隱私規範
+This repository currently does not define a license.
