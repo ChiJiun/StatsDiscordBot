@@ -124,6 +124,10 @@ SPECIFIC_PROMPTS = {
     "Four-Step_Chi-square Test for Independence": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "Four-Step_Chi-square Test for Independence.txt")
+    },
+    "National Central University 2": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "National Central University 2.txt")
     }
 }
 
