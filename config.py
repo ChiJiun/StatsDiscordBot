@@ -128,6 +128,10 @@ SPECIFIC_PROMPTS = {
     "National Central University 2": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "National Central University 2.txt")
+    },
+    "Final Exam": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "Final Exam.txt")
     }
 }
 
