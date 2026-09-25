@@ -9,9 +9,9 @@ from config import (
     DISCORD_TOKEN,
     UPLOADS_DIR, REPORTS_DIR,
     REPORTS_FOLDER_ID,
-    WELCOME_CHANNEL_ID, NCUFN_CHANNEL_ID, NCUEC_CHANNEL_ID, CYCUIUBM_CHANNEL_ID, HWIS_CHANNEL_ID, ADMIN_CHANNEL_ID, 
-    NCUFN_ROLE_NAME, NCUEC_ROLE_NAME, CYCUIUBM_ROLE_NAME, HWIS_ROLE_NAME,
-    NCUFN_ROLE_ID, NCUEC_ROLE_ID, CYCUIUBM_ROLE_ID, HWIS_ROLE_ID, ADMIN_ROLE_ID
+    WELCOME_CHANNEL_ID, NCUFN_CHANNEL_ID, NCUEC_CHANNEL_ID, CYCUIUBM_CHANNEL_ID, CYCUBA_CHANNEL_ID, HWIS_CHANNEL_ID, ADMIN_CHANNEL_ID,
+    NCUFN_ROLE_NAME, NCUEC_ROLE_NAME, CYCUIUBM_ROLE_NAME, CYCUBA_ROLE_NAME, HWIS_ROLE_NAME,
+    NCUFN_ROLE_ID, NCUEC_ROLE_ID, CYCUIUBM_ROLE_ID, CYCUBA_ROLE_ID, HWIS_ROLE_ID, ADMIN_ROLE_ID
 )
 from database import DatabaseManager
 from html_parser import extract_html_content, extract_html_title
@@ -40,6 +40,7 @@ class HomeworkBot:
             NCUFN_ROLE_NAME: "NCUFN",
             NCUEC_ROLE_NAME: "NCUEC",
             CYCUIUBM_ROLE_NAME: "CYCUIUBM",
+            CYCUBA_ROLE_NAME: "CYCUBA",
             HWIS_ROLE_NAME: "HWIS",
         }
 
@@ -49,6 +50,7 @@ class HomeworkBot:
                 "NCUFN": NCUFN_CHANNEL_ID,
                 "NCUEC": NCUEC_CHANNEL_ID,
                 "CYCUIUBM": CYCUIUBM_CHANNEL_ID,
+                "CYCUBA": CYCUBA_CHANNEL_ID,
                 "HWIS": HWIS_CHANNEL_ID,
             }
         except ImportError:
@@ -1120,6 +1122,7 @@ class HomeworkBot:
                 "NCUFN": (NCUFN_ROLE_ID, NCUFN_ROLE_NAME),
                 "NCUEC": (NCUEC_ROLE_ID, NCUEC_ROLE_NAME),
                 "CYCUIUBM": (CYCUIUBM_ROLE_ID, CYCUIUBM_ROLE_NAME),
+                "CYCUBA": (CYCUBA_ROLE_ID, CYCUBA_ROLE_NAME),
                 "HWIS": (HWIS_ROLE_ID, HWIS_ROLE_NAME),
             }
             

@@ -52,7 +52,7 @@ class StudentImporter:
             class_data = self.db.get_class_by_name(class_name)
             if not class_data:
                 # 檢查是否為已知的班級代碼
-                known_classes = ["NCUFN", "NCUEC", "CYCUIUBM"]
+                known_classes = ["NCUFN", "NCUEC", "CYCUIUBM", "CYCUBA", "HWIS"]
                 if class_name.upper() in known_classes:
                     # 創建已知班級
                     class_id = self.db.create_class(class_name.upper())
@@ -269,7 +269,7 @@ class StudentImporter:
                 print(f"📄 發現 {len(sheet_names)} 個工作表: {', '.join(sheet_names)}")
 
                 # 已知的班級代碼
-                known_classes = ["NCUFN", "NCUEC", "CYCUIUBM"]
+                known_classes = ["NCUFN", "NCUEC", "CYCUIUBM", "CYCUBA", "HWIS"]
 
                 # 處理每個工作表
                 file_results = []
@@ -336,7 +336,7 @@ class StudentImporter:
                 print(f"\n📋 正在處理工作表: {sheet_name}")
 
                 # 已知的班級代碼
-                known_classes = ["NCUFN", "NCUEC", "CYCUIUBM"]
+                known_classes = ["NCUFN", "NCUEC", "CYCUIUBM", "CYCUBA", "HWIS"]
 
                 if sheet_name.upper() in known_classes:
                     result = self.import_from_excel(excel_file_path, class_name=sheet_name.upper(), sheet_name=sheet_name)
