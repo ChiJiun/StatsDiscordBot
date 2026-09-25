@@ -645,7 +645,7 @@ def show_all_classes(db):
 
 def show_class_students(db):
     """顯示班級學生列表"""
-    class_name = input("\n請輸入班級名稱 / Enter class name (NCUFN/NCUEC/CYCUIUBM): ").strip()
+    class_name = input("\n請輸入班級名稱 / Enter class name (NCUFN/NCUEC/CYCUIUBM/CYCUBA/HWIS): ").strip()
     
     class_data = db.get_class_by_name(class_name)
     if not class_data:

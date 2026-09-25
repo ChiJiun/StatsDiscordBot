@@ -28,6 +28,8 @@ class PasswordImporter:
             "NCUFN": "NCUFN",
             "NCUEC": "NCUEC",
             "CYCUIUBM": "CYCUIUBM",
+            "HWIS": "HWIS",
+            "CYCUBA": "CYCUBA",
         }
 
     def parse_txt_files_in_folder(self, folder_path):
