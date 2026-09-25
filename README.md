@@ -97,6 +97,7 @@ WELCOME_CHANNEL_ID=your_welcome_channel_id
 NCUFN_CHANNEL_ID=your_ncufn_channel_id
 NCUEC_CHANNEL_ID=your_ncuec_channel_id
 CYCUIUBM_CHANNEL_ID=your_cycuiubm_channel_id
+CYCUBA_CHANNEL_ID=your_cycuba_channel_id
 HWIS_CHANNEL_ID=your_hwis_channel_id
 
 ADMIN_CHANNEL_ID=your_admin_channel_id
@@ -105,6 +106,7 @@ ADMIN_ROLE_ID=your_admin_role_id
 NCUFN_ROLE_ID=optional_role_id
 NCUEC_ROLE_ID=optional_role_id
 CYCUIUBM_ROLE_ID=optional_role_id
+CYCUBA_ROLE_ID=optional_role_id
 HWIS_ROLE_ID=optional_role_id
 ```
 
@@ -150,6 +152,8 @@ python script/student_importer.py
 - `NCUFN`
 - `NCUEC`
 - `CYCUIUBM`
+- `CYCUBA`
+- `HWIS`
 
 ## 如何啟動專案
 

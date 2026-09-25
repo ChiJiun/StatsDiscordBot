@@ -35,6 +35,9 @@
     <p>填寫以下內容，系統將自動生成符合 <code>crawler.py</code> 抓取格式的 Prompt。</p>
 
     <h2>1. 題目與參考資料 (Reference Materials)</h2>
+    <label>額外的 ⚠️ Strict Instructions（會附加在既有 Strict Instructions 之後）:</label>
+    <textarea id="extraStrictInstructions" placeholder="例如：- 只以這次作業規則為準...\n- 若學生沒有寫出某步驟，請在 Feedback 中標註 (選填)..."></textarea>
+
     <label>題目內容 (Problem Statement):</label>
     <textarea id="problemStatement" placeholder="請貼上題目內容..."></textarea>
 
@@ -123,8 +126,23 @@
     function generatePrompt() {
         const problem = document.getElementById('problemStatement').value.trim();
         const solution = document.getElementById('modelSolution').value.trim();
-        
-        let prompt = `You are a statistics grader.\nUse the rubric below to evaluate the student’s written solution.\n\n⚠️ Strict Instructions:\n- DO NOT alter or summarize the rubric text.\n- DO NOT add extra explanation outside the specified output.\n- Always produce the output in **Markdown tables** exactly as shown below.\n- If a section is missing, still include it in the table.\n- If the question number is unclear or the answer is missing, please write in feedback.\n- Equivalent expressions are acceptable if they convey the same meaning.\n- Evaluate statistical reasoning and conceptual correctness, not HTML tags or minor formatting.\n- Grammar or language issues should not reduce points unless they obscure meaning.\n- The "Feedback" should explain why points were deducted and how to correct mistakes.\n- The "Suggested Improved Answer" should refrain from rewriting the student’s answer entirely; focus on corrections and guidance.\n- The "Required Output Format" do not approximate. Treat all numbers as exact decimals.\n---\n\n## REFERENCE MATERIALS\n(These are for your understanding only. DO NOT include them in your output.)\n\n### Problem Statement\n${problem}\n\n`;
+        const extraStrictInstructions = document.getElementById('extraStrictInstructions').value.trim();
+
+        let prompt = `You are a statistics grader.\nUse the rubric below to evaluate the student’s written solution.\n\n⚠️ Strict Instructions:\n- DO NOT alter or summarize the rubric text.\n- DO NOT add extra explanation outside the specified output.\n- Always produce the output in **Markdown tables** exactly as shown below.\n- If a section is missing, still include it in the table.\n- If the question number is unclear or the answer is missing, please write in feedback.\n- Equivalent expressions are acceptable if they convey the same meaning.\n- Evaluate statistical reasoning and conceptual correctness, not HTML tags or minor formatting.\n- Grammar or language issues should not reduce points unless they obscure meaning.\n- The "Feedback" should explain why points were deducted and how to correct mistakes.\n- The "Suggested Improved Answer" should refrain from rewriting the student’s answer entirely; focus on corrections and guidance.\n- The "Required Output Format" do not approximate. Treat all numbers as exact decimals.`;
+
+        if (extraStrictInstructions) {
+            const extraLines = extraStrictInstructions
+                .split(/\r?\n/)
+                .map(line => line.trim())
+                .filter(line => line.length > 0)
+                .map(line => line.startsWith('- ') || line.startsWith('* ') || line.startsWith('• ') ? line : `- ${line}`);
+
+            if (extraLines.length > 0) {
+                prompt += `\n${extraLines.join('\n')}`;
+            }
+        }
+
+        prompt += `\n---\n\n## REFERENCE MATERIALS\n(These are for your understanding only. DO NOT include them in your output.)\n\n### Problem Statement\n${problem}\n\n`;
 
         if (solution) {
             const safeSolution = solution.replace(/###\s*(.+)/g, "**$1**");
