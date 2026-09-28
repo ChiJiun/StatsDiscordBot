@@ -143,6 +143,10 @@ SPECIFIC_PROMPTS = {
     "DFSO_Business_FRQ": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "DFSO_Business_FRQ.txt")
+    },
+    "DFSO_Demand_FRQ": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "DFSO_Demand_FRQ.txt")
     }
 }
 
