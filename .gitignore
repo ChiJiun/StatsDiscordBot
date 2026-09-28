@@ -1,5 +1,7 @@
 # 環境變數檔案 (包含敏感資訊)
 .env
+.env.*
+!.env.example
 
 # 保留資料夾結構但忽略內容
 reports/*
@@ -11,11 +13,22 @@ server/*
 
 # Python 編譯後的檔案
 __pycache__/
+*.py[cod]
+
+# Python 虛擬環境與工具快取
+.venv/
+venv/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
 
 # 課程列表
 Course List/
 CsvProcessors/html_parser/student_htmls/
+CsvProcessors/password_importer/CYCUBA/
 CsvProcessors/password_importer/CYCUIUBM/
+CsvProcessors/password_importer/HWIS/
 CsvProcessors/password_importer/NCUEC/
 CsvProcessors/password_importer/NCUFN/
 CsvProcessors/html_parser/EC_output.xlsx
@@ -27,3 +40,4 @@ token.json
 credentials.json
 
 homework.db
+homework.db-*
