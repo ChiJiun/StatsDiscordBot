@@ -151,6 +151,10 @@ SPECIFIC_PROMPTS = {
     "SOCS_Comparison_Practice 1st": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "SOCS_Comparison_Practice 1st.txt")
+    },
+    "SOCS_Comparison_Practice 2nd": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "SOCS_Comparison_Practice 2nd.txt")
     }
 }
 
