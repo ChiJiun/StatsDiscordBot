@@ -191,6 +191,18 @@ SPECIFIC_PROMPTS = {
     "5.3-MEAN-Practice 2-Round 2": {
         "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
         "statistics": os.path.join(PROMPTS_DIR, "5.3-MEAN-Practice 2-Round 2.txt")
+    },
+    "5.4-PROP-Test 1": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "5.4-PROP-Test 1.txt")
+    },
+    "5.3-MEAN-Test 1": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "5.3-MEAN-Test 1.txt")
+    },
+    "SOCS_Comparison_Fulfillment_Test": {
+        "english": os.path.join(PROMPTS_DIR, "Eng_prompt.txt"),
+        "statistics": os.path.join(PROMPTS_DIR, "SOCS_Comparison_Fulfillment_Test.txt")
     }
 }
 
