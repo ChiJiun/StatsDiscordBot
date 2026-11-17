@@ -15,6 +15,11 @@ Use the rubric below to evaluate the student’s written solution.
 - The "Required Output Format" do not approximate. Treat all numbers as exact decimals.
 - Exact z-score: z = −0.7/0.6 = −1.1667 ≈ −1.17. The table value is P(Z < −1.17) = 0.1210.
 - D5 accepts any probability from 0.11 to 0.13 to allow for rounding or table differences.
+- Do not provide a model solution or a rewritten answer.
+- Do not reveal missing numerical results, formulas, or final answers.
+- Do not include "Feedback" or "Suggested Improved Answer" sections.
+- Preserve the required grading tables, item scores, subtotals, and summary.
+- Do not add any explanations outside the required tables.
 ---
 
 ## REFERENCE MATERIALS
