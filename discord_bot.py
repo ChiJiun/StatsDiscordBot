@@ -5,6 +5,7 @@ import asyncio
 import traceback
 import openai
 import time
+from datetime import timezone, timedelta
 from config import (
     DISCORD_TOKEN,
     UPLOADS_DIR, REPORTS_DIR,
@@ -1048,7 +1049,9 @@ class HomeworkBot:
                     attempt_number=attempt_number,
                     html_path=save_path,
                     parsed_scores=parsed_data,  # 傳入成績字典
-                    score_keys=ordered_keys     # 傳入欄位順序
+                    score_keys=ordered_keys,    # 傳入欄位順序
+                    upload_time=message.created_at.astimezone(timezone(timedelta(hours=8))).isoformat(timespec="seconds"),
+                    grading_duration_sec=round(total_duration, 2)
                 )
                 
                 if db_insert_success:
@@ -1306,14 +1309,16 @@ class HomeworkBot:
 
             # --- 下方的組裝邏輯完全不變 ---
             all_data = []
-            master_keys = ["學號", "姓名", "作答次數"]
+            master_keys = ["學號", "姓名", "作答次數", "上傳檔案時刻", "系統評分時長（sec）"]
 
             for row in records:
-                stu_num, stu_name, attempt, scores_json, keys_json = row
+                stu_num, stu_name, attempt, scores_json, keys_json, upload_time, grading_duration_sec = row
                 data_dict = {
                     "學號": stu_num,
                     "姓名": stu_name,
-                    "作答次數": attempt if attempt else ""
+                    "作答次數": attempt if attempt else "",
+                    "上傳檔案時刻": upload_time or "",
+                    "系統評分時長（sec）": grading_duration_sec if grading_duration_sec is not None else ""
                 }
                 
                 if scores_json:
