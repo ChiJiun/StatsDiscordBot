@@ -69,11 +69,14 @@ class DatabaseManager:
         self.cur.execute("CREATE INDEX IF NOT EXISTS idx_assignment_files_student_id ON AssignmentFiles(student_id)")
         self.cur.execute("CREATE INDEX IF NOT EXISTS idx_assignment_files_question ON AssignmentFiles(question_title)")
 
-        try:
-            self.cur.execute("ALTER TABLE AssignmentFiles ADD COLUMN parsed_scores TEXT")
-            self.cur.execute("ALTER TABLE AssignmentFiles ADD COLUMN score_keys TEXT")
-        except sqlite3.OperationalError:
-            pass # 如果欄位已存在會觸發此錯誤，直接忽略即可，確保程式不會崩潰
+        existing_columns = {row[1] for row in self.cur.execute("PRAGMA table_info(AssignmentFiles)")}
+        for column, column_type in (
+            ("parsed_scores", "TEXT"),
+            ("score_keys", "TEXT"),
+            ("grading_duration_sec", "REAL"),
+        ):
+            if column not in existing_columns:
+                self.cur.execute(f"ALTER TABLE AssignmentFiles ADD COLUMN {column} {column_type}")
 
         self.conn.commit()
         print("✅ 資料庫表格建立完成 / Database tables created")
@@ -248,7 +251,7 @@ class DatabaseManager:
 
     # 替換原有的 insert_submission
     def insert_submission(self, discord_id, student_name, student_number, question_title, attempt_number, 
-                         html_path, parsed_scores=None, score_keys=None):
+                         html_path, parsed_scores=None, score_keys=None, upload_time=None, grading_duration_sec=None):
         """插入作業提交記錄與解析成績"""
         try:
             # 獲取學生資料（通過 Discord ID）
@@ -268,8 +271,8 @@ class DatabaseManager:
                 """
                 INSERT INTO AssignmentFiles 
                 (user_id, student_id, class_id, file_path, file_type, question_title, attempt_number, 
-                 upload_time, parsed_scores, score_keys)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                 upload_time, parsed_scores, score_keys, grading_duration_sec)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
                 (
                     str(discord_id),
@@ -279,9 +282,10 @@ class DatabaseManager:
                     "grading",
                     question_title,
                     attempt_number,
-                    datetime.now().isoformat(),
+                    upload_time or datetime.now().isoformat(),
                     scores_json,  # 儲存成績資料
-                    keys_json     # 儲存欄位順序
+                    keys_json,    # 儲存欄位順序
+                    grading_duration_sec
                 ),
             )
 
@@ -308,7 +312,9 @@ class DatabaseManager:
                 s.student_name, 
                 a.attempt_number, 
                 a.parsed_scores, 
-                a.score_keys
+                a.score_keys,
+                a.upload_time,
+                a.grading_duration_sec
             FROM Students s
             JOIN Classes c ON s.class_id = c.class_id
             -- 使用 LEFT JOIN 確保就算沒繳交作業的學生也會出現在名單上 (成績空白)
