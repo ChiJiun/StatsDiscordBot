@@ -67,6 +67,7 @@ def embed_pdf(directory, title, label):
     return (
         f'<object class="pdf-viewer" type="application/pdf" data="{src}" '
         f'aria-label="{safe_label} PDF">'
-        f'<p>瀏覽器無法預覽 PDF。<a href="{src}" download="{safe_filename}">下載完整 PDF</a></p>'
+        '<p>瀏覽器無法預覽 PDF，請使用下方下載連結。</p>'
         "</object>"
+        f'<p><a href="{src}" download="{safe_filename}">下載完整 PDF</a></p>'
     )
