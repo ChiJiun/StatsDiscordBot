@@ -2,7 +2,8 @@ import html
 import markdown
 import os
 import datetime
-import docx  # 👈 新增：匯入 docx 模組用來讀取 Word 檔
+import docx
+from pdf_embed import embed_pdf
 
 def generate_html_report(
     student_name,
@@ -71,9 +72,23 @@ def generate_html_report(
     if a_content:
         model_solution = a_content
 
-    # 將題目與答案轉換為 HTML (即使是 Word 純文字，經過 Markdown 轉換也能有較好的段落排版)
-    problem_html = markdown.markdown(problem_statement, extensions=["tables", "fenced_code"])
-    solution_html = markdown.markdown(model_solution, extensions=["tables", "fenced_code"])
+    # 將完整的 PDF 直接編入 HTML，下載後離線仍可閱讀圖表及表格。
+    # 現有來源多為 DOCX，無預先匯出的 PDF 時會使用 LibreOffice 轉檔。
+    def render_source(directory, text, label):
+        pdf_html = embed_pdf(directory, safe_title, label)
+        if pdf_html is not None:
+            return pdf_html
+        text_html = markdown.markdown(text, extensions=["tables", "fenced_code"])
+        if os.path.isfile(os.path.join(directory, f"{safe_title}.docx")):
+            return (
+                '<p class="pdf-warning">PDF 轉換失敗：目前僅顯示文字，'
+                '圖表及原始排版可能遺失。請聯絡管理員確認 LibreOffice 或 PDF 原檔。</p>'
+                + text_html
+            )
+        return text_html
+
+    problem_html = render_source(question_dir, problem_statement, "完整題目")
+    solution_html = render_source(answer_dir, model_solution, "完整解答")
     # ==========================================
 
     # 處理學生作答內容
@@ -138,6 +153,9 @@ def generate_html_report(
         .box-problem {{ border-left: 4px solid #e67e22; }}
         .box-student {{ border-left: 4px solid #4a7ebb; white-space: pre-wrap; }}
         .box-solution {{ border-left: 4px solid #27ae60; }}
+        .pdf-viewer {{ display: block; width: 100%; height: 82vh; min-height: 650px; border: 1px solid #bbb; background: #fff; }}
+        .pdf-warning {{ color: #8a4000; background: #fff4e1; padding: 12px; border-left: 4px solid #e67e22; }}
+        @media (max-width: 600px) {{ .pdf-viewer {{ min-height: 480px; }} }}
     </style>
 
 <title>{student_id} 回饋報告</title></head><body>

@@ -212,6 +212,15 @@ python main.py --force-welcome
 8. 提交紀錄與解析分數寫入 SQLite
 9. 檔案儲存到本地並同步到 Google Drive
 
+## HTML 報告的完整題目與解答
+
+生成回饋報告時，系統在「完整題目」和「完整解答」段落嵌入 PDF，圖表、表格與版面會依照 PDF 顯示。PDF 使用 Base64 內嵌於單一 HTML，學生從 Discord 下載後不需要其他附件或網路連線。
+
+- 優先讀取 `Question/<題目標題>.pdf`、`Answer/<題目標題>.pdf`。
+- 沒有 PDF 時，使用 `libreoffice` 或 `soffice`（需在執行環境的 PATH 上）將對應的 `.docx` 轉成 PDF。現有題目與答案主要是 DOCX，所以**部署前必須確認執行環境有 LibreOffice**。
+- 如果無法轉換，報告會顯示文字內容及明確警告，避免誤以為圖表已完整呈現。
+- PDF 內嵌會增加 HTML 檔案大小；如超過 Discord 伺服器的附件限制，仍須另外處理檔案交付方式。
+
 ## 資料儲存
 
 目前專案使用：
